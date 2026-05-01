@@ -15094,8 +15094,7 @@ ${this.state.error.message}`
         allowFullscreen: true,
         showVolumeControls: true,
         moveToBeginningWhenEnded: true,
-        initiallyShowControls: true,
-        id: "MotadawelPreviewPlayer"
+        initiallyShowControls: true
       }
     )));
   };

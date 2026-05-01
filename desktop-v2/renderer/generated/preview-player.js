@@ -7858,7 +7858,7 @@
   });
 
   // desktop-v2/preview/player-entry.tsx
-  var import_react4 = __toESM(require_react());
+  var import_react3 = __toESM(require_react());
   var import_client = __toESM(require_client());
 
   // node_modules/@remotion/player/dist/esm/index.mjs
@@ -14582,18 +14582,6 @@ Check that all your Remotion packages are on the same version. If your dependenc
   var forward = import_react2.forwardRef;
   var Thumbnail = forward(ThumbnailFn);
 
-  // src/remotion/Slide.tsx
-  var import_react3 = __toESM(require_react());
-
-  // src/remotion/types.ts
-  var TEXT_PRESETS = {
-    dark: { bg: "rgba(0,0,0,0.65)", color: "#ffffff", border: "rgba(255,255,255,0.12)" },
-    gold: { bg: "rgba(160,90,0,0.88)", color: "#fff8e0", border: "rgba(255,220,80,0.35)" },
-    blue: { bg: "rgba(0,45,130,0.90)", color: "#e8f0ff", border: "rgba(80,140,255,0.35)" },
-    red: { bg: "rgba(160,10,10,0.88)", color: "#ffe8e8", border: "rgba(255,80,80,0.35)" },
-    orange: { bg: "rgba(230,90,0,0.95)", color: "#ffffff", border: "rgba(255,180,60,0.55)" }
-  };
-
   // src/remotion/Transitions.tsx
   var import_jsx_runtime3 = __toESM(require_jsx_runtime());
   var getEffectByIndex = (index) => {
@@ -14616,25 +14604,1238 @@ Check that all your Remotion packages are on the same version. If your dependenc
     return null;
   };
 
-  // src/remotion/Slide.tsx
+  // src/remotion/text-animations/ParallaxDepth.tsx
   var import_jsx_runtime4 = __toESM(require_jsx_runtime());
-  var FONT_FAMILY = "RB";
-  if (typeof document !== "undefined") {
-    const fontUrl = staticFile("assets/fonts/rb.ttf");
-    const style = document.createElement("style");
-    style.textContent = `
-    @font-face {
-      font-family: '${FONT_FAMILY}';
-      src: url('${fontUrl}') format('truetype');
-      font-weight: bold;
-      font-style: normal;
+  var ParallaxDepth = ({
+    frame,
+    enabled = true,
+    delayFrames = 45,
+    strength = 1,
+    shadowWidth = 920,
+    shadowHeight = 150,
+    children
+  }) => {
+    if (!enabled) {
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_jsx_runtime4.Fragment, { children });
     }
-  `;
-    if (!document.head.querySelector(`[data-font="${FONT_FAMILY}"]`)) {
-      style.setAttribute("data-font", FONT_FAMILY);
-      document.head.appendChild(style);
-    }
+    const localFrame = Math.max(0, frame - delayFrames);
+    const enter = interpolate(localFrame, [0, 60], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const breathe = Math.sin(localFrame / 42);
+    const textX = (-14 * enter + breathe * -4) * strength;
+    const textY = (-4 * enter + breathe * -1.5) * strength;
+    const textScale = 1 + 6e-3 * enter;
+    const shadowOpacity = interpolate(localFrame, [0, 45], [0, 0.55], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const shadowX = (18 + breathe * 8) * strength;
+    const shadowY = (20 + breathe * 5) * strength;
+    const shadowScale = 1 + 0.02 * enter;
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none"
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                right: 320,
+                bottom: 120,
+                width: shadowWidth,
+                height: shadowHeight,
+                borderRadius: 28,
+                background: "radial-gradient(ellipse at center, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.24) 42%, rgba(0,0,0,0) 72%)",
+                filter: "blur(24px)",
+                opacity: shadowOpacity,
+                transform: `translate(${shadowX}px, ${shadowY}px) scale(${shadowScale})`,
+                transformOrigin: "center center"
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                inset: 0,
+                transform: `translate(${textX}px, ${textY}px) scale(${textScale})`,
+                transformOrigin: "center center"
+              },
+              children
+            }
+          )
+        ]
+      }
+    );
+  };
+
+  // src/remotion/types.ts
+  var TEXT_PRESETS = {
+    dark: { bg: "rgba(0,0,0,0.65)", color: "#ffffff", border: "rgba(255,255,255,0.12)" },
+    gold: { bg: "rgba(160,90,0,0.88)", color: "#fff8e0", border: "rgba(255,220,80,0.35)" },
+    blue: { bg: "rgba(0,45,130,0.90)", color: "#e8f0ff", border: "rgba(80,140,255,0.35)" },
+    red: { bg: "rgba(160,10,10,0.88)", color: "#ffe8e8", border: "rgba(255,80,80,0.35)" },
+    orange: { bg: "rgba(230,90,0,0.95)", color: "#ffffff", border: "rgba(255,180,60,0.55)" }
+  };
+
+  // src/remotion/text-animations/textUtils.ts
+  function splitLines(text) {
+    return text.split("++").map((line) => line.trim()).filter(Boolean);
   }
+  function splitWords(text) {
+    return text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  }
+  function extractNumberHero(text) {
+    const lines = splitLines(text);
+    const source = lines[0] ?? text;
+    const match = source.match(/[\d٠-٩۰-۹]+(?:[.,][\d٠-٩۰-۹]+)?\s*%?/);
+    if (!match) {
+      return {
+        valueText: lines[0] ?? "0",
+        description: lines.slice(1).join(" ") || ""
+      };
+    }
+    const valueText = match[0].trim();
+    const descriptionFromFirstLine = source.replace(match[0], "").trim();
+    const description = [
+      descriptionFromFirstLine,
+      ...lines.slice(1)
+    ].join(" ").trim();
+    return {
+      valueText,
+      description
+    };
+  }
+  function parseLayeredTitle(text) {
+    const lines = splitLines(text);
+    return {
+      label: lines[0] || "\u0633\u0628\u0628 01",
+      title: lines[1] || lines[0] || text,
+      description: lines[2] || ""
+    };
+  }
+  function parseTimeline(text) {
+    const lines = splitLines(text);
+    return {
+      period: lines[0] || text,
+      description: lines[1] || ""
+    };
+  }
+  function parseMorphWords(text) {
+    if (text.includes("|")) {
+      return text.split("|").map((word) => word.trim()).filter(Boolean);
+    }
+    const lines = splitLines(text);
+    if (lines.length > 1)
+      return lines;
+    return splitWords(text).slice(0, 4);
+  }
+  function parseKeywordText(text) {
+    const lines = splitLines(text);
+    const main = lines[0] || text;
+    const subline = lines[1] || "";
+    const match = main.match(/\*\*(.*?)\*\*/);
+    if (match) {
+      const keyword2 = match[1].trim();
+      const [before, afterRaw] = main.split(match[0]);
+      return {
+        before: before.trim(),
+        keyword: keyword2,
+        after: (afterRaw || "").trim(),
+        subline
+      };
+    }
+    const words = splitWords(main);
+    const keyword = words.length > 1 ? words[1] : words[0] || main;
+    const keywordIndex = main.indexOf(keyword);
+    return {
+      before: keywordIndex >= 0 ? main.slice(0, keywordIndex).trim() : "",
+      keyword,
+      after: keywordIndex >= 0 ? main.slice(keywordIndex + keyword.length).trim() : "",
+      subline
+    };
+  }
+
+  // src/remotion/text-animations/textStyles.ts
+  var FONT_FAMILY = "RB";
+  function getTextContainerStyle(bottomOffset) {
+    return {
+      position: "absolute",
+      bottom: bottomOffset,
+      left: "20%",
+      width: "max-content",
+      maxWidth: "75%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      gap: 12
+    };
+  }
+  function getLineStyle(params) {
+    const { bg, color, border, fontSize, radius = 0 } = params;
+    return {
+      position: "relative",
+      overflow: "hidden",
+      width: "max-content",
+      maxWidth: "100%",
+      background: bg,
+      color,
+      padding: `${Math.round(fontSize * 0.15)}px ${Math.round(fontSize * 0.45)}px`,
+      borderRadius: radius,
+      fontSize,
+      fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`,
+      fontWeight: "bold",
+      textAlign: "right",
+      lineHeight: 1.4,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+      border: `1px solid ${border}`,
+      backdropFilter: "blur(8px)",
+      direction: "rtl",
+      letterSpacing: 0
+    };
+  }
+
+  // src/remotion/text-animations/presets/MotionBlurText.tsx
+  var import_jsx_runtime5 = __toESM(require_jsx_runtime());
+  var MotionBlurText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    const lines = splitLines(text);
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+      const local = Math.max(0, frame - index * 15);
+      const opacity = interpolate(local, [0, 18], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const y = interpolate(local, [0, 18], [40, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const blur = interpolate(local, [0, 18], [15, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        "div",
+        {
+          style: {
+            opacity,
+            transform: `translateY(${y}px)`,
+            filter: `blur(${blur}px)`
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            "div",
+            {
+              style: getLineStyle({
+                bg: colors.bg,
+                color: colors.color,
+                border: colors.border,
+                fontSize
+              }),
+              children: line
+            }
+          )
+        },
+        `${line}-${index}`
+      );
+    }) });
+  };
+
+  // src/remotion/text-animations/presets/TypewriterText.tsx
+  var import_jsx_runtime6 = __toESM(require_jsx_runtime());
+  var TypewriterText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    const chars = Array.from(text.replace(/\+\+/g, " "));
+    const charsToShow = Math.min(chars.length, Math.max(0, Math.floor((frame - 5) / 1.2)));
+    const visible = chars.slice(0, charsToShow).join("");
+    const cursorOn = charsToShow < chars.length && Math.floor(frame / 8) % 2 === 0;
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+      "div",
+      {
+        style: getLineStyle({
+          bg: colors.bg,
+          color: colors.color,
+          border: colors.border,
+          fontSize
+        }),
+        children: [
+          visible,
+          cursorOn ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            "span",
+            {
+              style: {
+                display: "inline-block",
+                width: 3,
+                height: "0.85em",
+                backgroundColor: colors.color,
+                marginRight: 6,
+                verticalAlign: "middle"
+              }
+            }
+          ) : null
+        ]
+      }
+    ) });
+  };
+
+  // src/remotion/text-animations/presets/LiveRevealDotText.tsx
+  var import_jsx_runtime7 = __toESM(require_jsx_runtime());
+  var LiveRevealDotText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const lines = splitLines(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+      const start = index * 10;
+      const local = Math.max(0, frame - start);
+      const reveal = interpolate(local, [0, 28], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const opacity = interpolate(local, [0, 8], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const x = interpolate(local, [0, 28], [40, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const dotScale = interpolate(local, [0, 8, 28], [0, 1, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const dotRightPercent = interpolate(local, [0, 28], [0, 100], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const pulse = 1 + Math.sin(Math.max(0, local - 32) / 8) * 0.12;
+      return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+        "div",
+        {
+          style: {
+            position: "relative",
+            overflow: "hidden",
+            opacity,
+            transform: `translateX(${x}px)`
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+              "div",
+              {
+                style: {
+                  ...getLineStyle({
+                    bg: index === 0 ? colors.bg : "linear-gradient(90deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24))",
+                    color: colors.color,
+                    border: colors.border,
+                    fontSize
+                  }),
+                  clipPath: `inset(0 ${100 - reveal * 100}% 0 0)`
+                },
+                children: line
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+              "div",
+              {
+                style: {
+                  position: "absolute",
+                  top: "50%",
+                  right: `${dotRightPercent}%`,
+                  width: Math.max(8, fontSize * 0.22),
+                  height: Math.max(8, fontSize * 0.22),
+                  borderRadius: "50%",
+                  backgroundColor: "#ffe19a",
+                  boxShadow: "0 0 22px rgba(255,225,154,0.95)",
+                  transform: `translate(50%, -50%) scale(${dotScale * pulse})`
+                }
+              }
+            )
+          ]
+        },
+        `${line}-${index}`
+      );
+    }) });
+  };
+
+  // src/remotion/text-animations/presets/BroadcastSplitText.tsx
+  var import_jsx_runtime8 = __toESM(require_jsx_runtime());
+  var BroadcastSplitText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const lines = splitLines(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+      const local = Math.max(0, frame - index * 9);
+      const y = interpolate(local, [0, 24], [110, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const opacity = interpolate(local, [0, 8], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+        "div",
+        {
+          style: {
+            overflow: "hidden",
+            opacity,
+            height: fontSize * 1.75
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+            "div",
+            {
+              style: {
+                transform: `translateY(${y}%)`,
+                background: index === 0 ? "rgba(0,0,0,0.68)" : "rgba(0,45,130,0.72)",
+                color: colors.color,
+                borderRight: "5px solid #ffe19a",
+                padding: `${Math.round(fontSize * 0.16)}px ${Math.round(fontSize * 0.48)}px`,
+                fontSize,
+                fontWeight: 900,
+                fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`,
+                lineHeight: 1.35,
+                boxShadow: "0 12px 34px rgba(0,0,0,0.46)",
+                direction: "rtl",
+                letterSpacing: 0
+              },
+              children: line
+            }
+          )
+        },
+        `${line}-${index}`
+      );
+    }) });
+  };
+
+  // src/remotion/text-animations/presets/NumberHeroText.tsx
+  var import_jsx_runtime9 = __toESM(require_jsx_runtime());
+  var NumberHeroText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const { valueText, description } = extractNumberHero(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    const numberScale = interpolate(frame, [0, 18, 28], [0.55, 1.14, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const numberOpacity = interpolate(frame, [0, 8], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const descY = interpolate(frame, [22, 42], [24, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const descOpacity = interpolate(frame, [22, 38], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          bottom: bottomOffset,
+          right: 180,
+          maxWidth: 900,
+          textAlign: "right",
+          direction: "rtl",
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            "div",
+            {
+              style: {
+                display: "inline-block",
+                fontSize: fontSize * 1.95,
+                fontWeight: 1e3,
+                color: "#ffe19a",
+                lineHeight: 1,
+                opacity: numberOpacity,
+                transform: `scale(${numberScale})`,
+                transformOrigin: "right center",
+                textShadow: "0 0 36px rgba(255,225,154,0.5)"
+              },
+              children: valueText
+            }
+          ),
+          description ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            "div",
+            {
+              style: {
+                marginTop: 12,
+                background: colors.bg,
+                color: colors.color,
+                border: `1px solid ${colors.border}`,
+                padding: `${Math.round(fontSize * 0.16)}px ${Math.round(fontSize * 0.45)}px`,
+                fontSize: fontSize * 0.82,
+                fontWeight: 900,
+                lineHeight: 1.4,
+                opacity: descOpacity,
+                transform: `translateY(${descY}px)`,
+                boxShadow: "0 12px 34px rgba(0,0,0,0.45)"
+              },
+              children: description
+            }
+          ) : null
+        ]
+      }
+    );
+  };
+
+  // src/remotion/text-animations/presets/LayeredTitleText.tsx
+  var import_jsx_runtime10 = __toESM(require_jsx_runtime());
+  var LayeredTitleText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize
+  }) => {
+    const { label: label3, title, description } = parseLayeredTitle(text);
+    const labelOpacity = interpolate(frame, [0, 10], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const labelY = interpolate(frame, [0, 15], [18, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const titleReveal = interpolate(frame, [10, 38], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const descOpacity = interpolate(frame, [38, 58], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const descY = interpolate(frame, [38, 58], [22, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const sideLineHeight = interpolate(frame, [6, 38], [0, 150], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const sidePulse = 1 + Math.sin(Math.max(0, frame - 60) / 18) * 0.06;
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          bottom: bottomOffset,
+          right: 180,
+          maxWidth: 1050,
+          direction: "rtl",
+          textAlign: "right",
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                right: -28,
+                top: 0,
+                width: 5,
+                height: sideLineHeight,
+                borderRadius: 999,
+                background: "linear-gradient(180deg, #ffe19a, rgba(255,225,154,0))",
+                transform: `scaleY(${sidePulse})`,
+                transformOrigin: "top"
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "div",
+            {
+              style: {
+                display: "inline-block",
+                padding: "5px 14px",
+                borderRadius: 999,
+                backgroundColor: "#ffe19a",
+                color: "#07111f",
+                fontSize: fontSize * 0.42,
+                fontWeight: 1e3,
+                opacity: labelOpacity,
+                transform: `translateY(${labelY}px)`,
+                boxShadow: "0 0 22px rgba(255,225,154,0.35)"
+              },
+              children: label3
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginTop: 12, overflow: "hidden", width: "max-content", maxWidth: 1e3 }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "div",
+            {
+              style: {
+                fontSize: fontSize * 1.15,
+                fontWeight: 1e3,
+                color: "#ffffff",
+                lineHeight: 1.22,
+                clipPath: `inset(0 ${100 - titleReveal * 100}% 0 0)`,
+                textShadow: "0 12px 34px rgba(0,0,0,0.55)"
+              },
+              children: title
+            }
+          ) }),
+          description ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "div",
+            {
+              style: {
+                marginTop: 10,
+                color: "#dbeafe",
+                fontSize: fontSize * 0.62,
+                fontWeight: 850,
+                lineHeight: 1.4,
+                opacity: descOpacity,
+                transform: `translateY(${descY}px)`
+              },
+              children: description
+            }
+          ) : null
+        ]
+      }
+    );
+  };
+
+  // src/remotion/text-animations/presets/MorphCompareText.tsx
+  var import_jsx_runtime11 = __toESM(require_jsx_runtime());
+  var MorphCompareText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize
+  }) => {
+    const words = parseMorphWords(text);
+    const safeWords = words.length > 0 ? words : ["\u0627\u0644\u0641\u0642\u0631", "\u0627\u0644\u063A\u0644\u0627\u0621"];
+    const cycleFrames = 78;
+    const index = Math.floor(frame / cycleFrames) % safeWords.length;
+    const cycleFrame = frame % cycleFrames;
+    const word = safeWords[index];
+    const opacity = interpolate(cycleFrame, [0, 10, 52, 70], [0, 1, 1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const blur = interpolate(cycleFrame, [0, 12, 52, 70], [8, 0, 0, 8], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const y = interpolate(cycleFrame, [0, 12, 52, 70], [18, 0, 0, -18], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          bottom: bottomOffset,
+          right: 180,
+          minWidth: 500,
+          textAlign: "right",
+          direction: "rtl",
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+        },
+        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+          "div",
+          {
+            style: {
+              fontSize: fontSize * 1.45,
+              color: "#ffe19a",
+              fontWeight: 1e3,
+              opacity,
+              filter: `blur(${blur}px)`,
+              transform: `translateY(${y}px)`,
+              textShadow: "0 0 34px rgba(255,225,154,0.45)"
+            },
+            children: word
+          }
+        )
+      }
+    );
+  };
+
+  // src/remotion/text-animations/presets/ImpactShockText.tsx
+  var import_jsx_runtime12 = __toESM(require_jsx_runtime());
+  var ImpactShockText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const lines = splitLines(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    const opacity = interpolate(frame, [0, 8], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const scale = interpolate(frame, [0, 12, 18, 26], [0.9, 1.06, 0.98, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const shake = frame < 26 ? Math.sin(frame * 1.8) * interpolate(frame, [0, 26], [8, 0], { extrapolateRight: "clamp" }) : 0;
+    const ringScale = interpolate(frame, [8, 34], [0.2, 7], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const ringOpacity = interpolate(frame, [8, 20, 34], [0, 0.75, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+      "div",
+      {
+        style: {
+          position: "relative",
+          opacity,
+          transform: `translateX(${shake}px) scale(${scale})`,
+          transformOrigin: "right center"
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                right: "50%",
+                top: "50%",
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                border: "2px solid rgba(239,68,68,0.85)",
+                opacity: ringOpacity,
+                transform: `translate(50%, -50%) scale(${ringScale})`
+              }
+            }
+          ),
+          lines.map((line, index) => /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+            "div",
+            {
+              style: {
+                ...getLineStyle({
+                  bg: index === 0 ? "rgba(140,20,20,0.88)" : colors.bg,
+                  color: colors.color,
+                  border: index === 0 ? "rgba(248,113,113,0.35)" : colors.border,
+                  fontSize
+                }),
+                marginTop: index === 0 ? 0 : 10
+              },
+              children: line
+            },
+            `${line}-${index}`
+          ))
+        ]
+      }
+    ) });
+  };
+
+  // src/remotion/text-animations/presets/WordByWordText.tsx
+  var import_jsx_runtime13 = __toESM(require_jsx_runtime());
+  var WordByWordText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const words = splitWords(text.replace(/\+\+/g, " "));
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+      "div",
+      {
+        style: getLineStyle({
+          bg: colors.bg,
+          color: colors.color,
+          border: colors.border,
+          fontSize
+        }),
+        children: words.map((word, index) => {
+          const local = Math.max(0, frame - index * 5);
+          const opacity = interpolate(local, [0, 12], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp"
+          });
+          const y = interpolate(local, [0, 16], [24, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp"
+          });
+          const blur = interpolate(local, [0, 16], [8, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp"
+          });
+          return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            "span",
+            {
+              style: {
+                display: "inline-block",
+                marginLeft: 8,
+                opacity,
+                transform: `translateY(${y}px)`,
+                filter: `blur(${blur}px)`
+              },
+              children: word
+            },
+            `${word}-${index}`
+          );
+        })
+      }
+    ) });
+  };
+
+  // src/remotion/text-animations/presets/TimelineMarkerText.tsx
+  var import_jsx_runtime14 = __toESM(require_jsx_runtime());
+  var TimelineMarkerText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize
+  }) => {
+    const { period, description } = parseTimeline(text);
+    const lineHeight = interpolate(frame, [0, 28], [0, 140], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const nodeScale = interpolate(frame, [20, 32], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const pulse = 1 + Math.sin(Math.max(0, frame - 42) / 10) * 0.12;
+    const contentOpacity = interpolate(frame, [14, 32], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const contentX = interpolate(frame, [14, 32], [38, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          bottom: bottomOffset,
+          right: 200,
+          direction: "rtl",
+          textAlign: "right",
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                right: -38,
+                top: 0,
+                width: 6,
+                height: lineHeight,
+                borderRadius: 999,
+                background: "linear-gradient(to bottom, #38bdf8, rgba(56,189,248,0))"
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                right: -47,
+                top: 18,
+                width: 24,
+                height: 24,
+                borderRadius: "50%",
+                backgroundColor: "#38bdf8",
+                boxShadow: "0 0 18px rgba(56,189,248,0.8)",
+                transform: `scale(${nodeScale * pulse})`
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { style: { opacity: contentOpacity, transform: `translateX(${contentX}px)` }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+              "div",
+              {
+                style: {
+                  backgroundColor: "rgba(0,0,0,0.64)",
+                  color: "#fff",
+                  padding: `${Math.round(fontSize * 0.16)}px ${Math.round(fontSize * 0.5)}px`,
+                  fontSize,
+                  fontWeight: 1e3,
+                  boxShadow: "0 12px 34px rgba(0,0,0,0.45)",
+                  borderRight: "5px solid #38bdf8"
+                },
+                children: period
+              }
+            ),
+            description ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+              "div",
+              {
+                style: {
+                  marginTop: 10,
+                  backgroundColor: "rgba(8,58,128,0.78)",
+                  color: "#ebf7ff",
+                  padding: `${Math.round(fontSize * 0.14)}px ${Math.round(fontSize * 0.44)}px`,
+                  fontSize: fontSize * 0.82,
+                  fontWeight: 850,
+                  boxShadow: "0 12px 34px rgba(0,0,0,0.45)"
+                },
+                children: description
+              }
+            ) : null
+          ] })
+        ]
+      }
+    );
+  };
+
+  // src/remotion/text-animations/presets/CinematicRevealText.tsx
+  var import_jsx_runtime15 = __toESM(require_jsx_runtime());
+  var CinematicRevealText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const lines = splitLines(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+      const local = Math.max(0, frame - index * 9);
+      const reveal = interpolate(local, [0, 30], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const x = interpolate(local, [0, 30], [35, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const opacity = interpolate(local, [0, 10], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+        "div",
+        {
+          style: {
+            opacity,
+            transform: `translateX(${x}px)`,
+            clipPath: `inset(0 ${100 - reveal * 100}% 0 0)`
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+            "div",
+            {
+              style: getLineStyle({
+                bg: index === 0 ? colors.bg : "linear-gradient(90deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24))",
+                color: colors.color,
+                border: colors.border,
+                fontSize
+              }),
+              children: line
+            }
+          )
+        },
+        `${line}-${index}`
+      );
+    }) });
+  };
+
+  // src/remotion/text-animations/presets/SplitLinesStaggerText.tsx
+  var import_jsx_runtime16 = __toESM(require_jsx_runtime());
+  var SplitLinesStaggerText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const lines = splitLines(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+      const local = Math.max(0, frame - index * 10);
+      const direction = index % 2 === 0 ? 1 : -1;
+      const x = interpolate(local, [0, 28], [direction * 90, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const opacity = interpolate(local, [0, 12], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { style: { opacity, transform: `translateX(${x}px)` }, children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+        "div",
+        {
+          style: getLineStyle({
+            bg: index === 0 ? "rgba(140,20,20,0.86)" : colors.bg,
+            color: colors.color,
+            border: index === 0 ? "rgba(248,113,113,0.35)" : colors.border,
+            fontSize
+          }),
+          children: line
+        }
+      ) }, `${line}-${index}`);
+    }) });
+  };
+
+  // src/remotion/text-animations/presets/HighlightSweepText.tsx
+  var import_jsx_runtime17 = __toESM(require_jsx_runtime());
+  var HighlightSweepText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize,
+    textPreset
+  }) => {
+    const lines = splitLines(text);
+    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
+    return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+      const local = Math.max(0, frame - index * 7);
+      const y = interpolate(local, [0, 18], [26, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const opacity = interpolate(local, [0, 14], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const sweepX = interpolate(local, [20, 58], [160, -260], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      const sweepOpacity = interpolate(local, [20, 28, 52, 58], [0, 1, 1, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp"
+      });
+      return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+        "div",
+        {
+          style: {
+            position: "relative",
+            opacity,
+            transform: `translateY(${y}px)`
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
+            "div",
+            {
+              style: getLineStyle({
+                bg: index === 0 ? colors.bg : "rgba(0,0,0,0.64)",
+                color: colors.color,
+                border: colors.border,
+                fontSize
+              }),
+              children: [
+                line,
+                /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+                  "div",
+                  {
+                    style: {
+                      position: "absolute",
+                      inset: 0,
+                      width: "45%",
+                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
+                      transform: `translateX(${sweepX}%) skewX(-20deg)`,
+                      opacity: sweepOpacity,
+                      pointerEvents: "none"
+                    }
+                  }
+                )
+              ]
+            }
+          )
+        },
+        `${line}-${index}`
+      );
+    }) });
+  };
+
+  // src/remotion/text-animations/presets/KineticKeywordText.tsx
+  var import_jsx_runtime18 = __toESM(require_jsx_runtime());
+  var KineticKeywordText = ({
+    text,
+    frame,
+    bottomOffset,
+    fontSize
+  }) => {
+    const { before, keyword, after, subline } = parseKeywordText(text);
+    const keywordOpacity = interpolate(frame, [0, 10], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const keywordY = interpolate(frame, [0, 22], [35, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const keywordScale = interpolate(frame, [0, 18, 28], [0.86, 1.08, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const subOpacity = interpolate(frame, [24, 45], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const subY = interpolate(frame, [24, 45], [24, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const glow = 0.45 + Math.sin(Math.max(0, frame - 45) / 14) * 0.2;
+    return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          bottom: bottomOffset,
+          right: 180,
+          direction: "rtl",
+          textAlign: "right",
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
+            "div",
+            {
+              style: {
+                fontSize: fontSize * 1.3,
+                fontWeight: 1e3,
+                color: "#ffffff",
+                lineHeight: 1.12,
+                opacity: keywordOpacity,
+                transform: `translateY(${keywordY}px) scale(${keywordScale})`,
+                transformOrigin: "right center",
+                textShadow: "0 14px 34px rgba(0,0,0,0.65)"
+              },
+              children: [
+                before ? /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { children: [
+                  before,
+                  " "
+                ] }) : null,
+                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+                  "span",
+                  {
+                    style: {
+                      color: "#ffe19a",
+                      textShadow: `0 0 ${30 * glow}px rgba(255,225,154,${glow})`
+                    },
+                    children: keyword
+                  }
+                ),
+                after ? /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { children: [
+                  " ",
+                  after
+                ] }) : null
+              ]
+            }
+          ),
+          subline ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+            "div",
+            {
+              style: {
+                marginTop: 12,
+                fontSize: fontSize * 0.62,
+                fontWeight: 850,
+                color: "#f8fafc",
+                opacity: subOpacity,
+                transform: `translateY(${subY}px)`
+              },
+              children: subline
+            }
+          ) : null
+        ]
+      }
+    );
+  };
+
+  // src/remotion/text-animations/TextAnimationRenderer.tsx
+  var import_jsx_runtime19 = __toESM(require_jsx_runtime());
+  var TextAnimationRenderer = (props) => {
+    const preset = props.textAnimationType ?? "motion-blur";
+    const rendered = (() => {
+      switch (preset) {
+        case "typewriter":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(TypewriterText, { ...props });
+        case "live-reveal-dot":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(LiveRevealDotText, { ...props });
+        case "broadcast-split":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(BroadcastSplitText, { ...props });
+        case "number-hero":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(NumberHeroText, { ...props });
+        case "layered-title":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(LayeredTitleText, { ...props });
+        case "morph-compare":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MorphCompareText, { ...props });
+        case "impact-shock":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(ImpactShockText, { ...props });
+        case "word-by-word":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(WordByWordText, { ...props });
+        case "timeline-marker":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(TimelineMarkerText, { ...props });
+        case "cinematic-reveal":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(CinematicRevealText, { ...props });
+        case "split-lines-stagger":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(SplitLinesStaggerText, { ...props });
+        case "highlight-sweep":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(HighlightSweepText, { ...props });
+        case "kinetic-keyword":
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(KineticKeywordText, { ...props });
+        case "motion-blur":
+        default:
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MotionBlurText, { ...props });
+      }
+    })();
+    return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+      ParallaxDepth,
+      {
+        frame: props.frame,
+        enabled: props.parallaxEnabled ?? true,
+        delayFrames: 52,
+        strength: 1,
+        children: rendered
+      }
+    );
+  };
+
+  // src/remotion/Slide.tsx
+  var import_jsx_runtime20 = __toESM(require_jsx_runtime());
+  var FONT_FACE_CSS = `
+  @font-face {
+    font-family: '${FONT_FAMILY}';
+    src: url('${staticFile("assets/fonts/rb.ttf")}') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+  }
+`;
   function getSlideContainerStyle(type, frame, durationFrames) {
     const d = durationFrames;
     if (type === "fade" || type === "light-leak") {
@@ -14643,13 +15844,49 @@ Check that all your Remotion packages are on the same version. If your dependenc
       };
     }
     if (type === "blur-wipe") {
-      const blur = interpolate(frame, [0, d * 0.6, d], [22, 8, 0], { extrapolateRight: "clamp" });
-      const opacity = interpolate(frame, [0, d * 0.4, d], [0, 0.6, 1], { extrapolateRight: "clamp" });
+      const blur = interpolate(frame, [0, d * 0.6, d], [22, 8, 0], {
+        extrapolateRight: "clamp"
+      });
+      const opacity = interpolate(frame, [0, d * 0.4, d], [0, 0.6, 1], {
+        extrapolateRight: "clamp"
+      });
       return { filter: `blur(${blur}px)`, opacity };
     }
     return {};
   }
-  var Slide = ({ slide, index, isFirst, textBottomOffset, textFontSize, textPreset, textAnimationType }) => {
+  var SubtitleVignette = ({ relativeFrame, bottomOffset, isTypewriter }) => {
+    const entryOpacity = interpolate(relativeFrame, [0, 18], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const vignetteOpacity = relativeFrame > 0 ? isTypewriter ? Math.min(1, relativeFrame / 10) : entryOpacity : 0;
+    const gradientHeight = Math.max(20, Math.round(bottomOffset / 1080 * 100) + 12);
+    return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          height: `${gradientHeight}%`,
+          background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%)",
+          opacity: vignetteOpacity,
+          pointerEvents: "none"
+        }
+      }
+    );
+  };
+  var Slide = ({
+    slide,
+    index,
+    isFirst,
+    textBottomOffset,
+    textFontSize,
+    textPreset,
+    textAnimationType,
+    parallaxEnabled
+  }) => {
     const frame = useCurrentFrame();
     const { durationInFrames } = useVideoConfig();
     const TRANSITION_FRAMES = 30;
@@ -14661,7 +15898,9 @@ Check that all your Remotion packages are on the same version. If your dependenc
     });
     const transitionType = getEffectByIndex(index);
     const transitionStyle = isFirst ? {} : getSlideContainerStyle(transitionType, frame, TRANSITION_FRAMES);
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+    const relativeFrame = Math.max(0, frame - (isFirst ? 0 : TRANSITION_FRAMES));
+    const hasText = Boolean(slide.text);
+    return /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(
       AbsoluteFill,
       {
         style: {
@@ -14669,7 +15908,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
           ...transitionStyle
         },
         children: [
-          /\.(mp4|mov|webm|mkv)$/i.test(slide.imageUrl) ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("style", { children: FONT_FACE_CSS }),
+          /\.(mp4|mov|webm|mkv)$/i.test(slide.imageUrl) ? /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
             Video,
             {
               src: slide.imageUrl,
@@ -14682,7 +15922,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 transformOrigin: "center center"
               }
             }
-          ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          ) : /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
             Img,
             {
               src: slide.imageUrl,
@@ -14695,18 +15935,30 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          slide.text ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-            Subtitle,
-            {
-              text: slide.text,
-              bottomOffset: textBottomOffset,
-              fontSize: textFontSize,
-              preset: textPreset,
-              textAnimationType,
-              isFirst
-            }
-          ) : null,
-          !isFirst && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          hasText ? /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(import_jsx_runtime20.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+              SubtitleVignette,
+              {
+                relativeFrame,
+                bottomOffset: textBottomOffset,
+                isTypewriter: textAnimationType === "typewriter"
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+              TextAnimationRenderer,
+              {
+                text: slide.text ?? "",
+                frame: relativeFrame,
+                isFirst,
+                bottomOffset: textBottomOffset,
+                fontSize: textFontSize,
+                textPreset,
+                textAnimationType,
+                parallaxEnabled
+              }
+            )
+          ] }) : null,
+          !isFirst && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
             TransitionOverlay,
             {
               type: transitionType,
@@ -14718,164 +15970,20 @@ Check that all your Remotion packages are on the same version. If your dependenc
       }
     );
   };
-  var FRAMES_PER_CHAR = 1;
-  var CURSOR_BLINK_RATE = 8;
-  var isRTL = (s) => /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(s);
-  var Subtitle = ({ text, bottomOffset, fontSize, preset, textAnimationType, isFirst }) => {
-    const frame = useCurrentFrame();
-    const { bg, color, border } = TEXT_PRESETS[preset] ?? TEXT_PRESETS.dark;
-    const startFrame = isFirst ? 0 : 30;
-    const relativeFrame = Math.max(0, frame - startFrame);
-    const segmenter = import_react3.default.useMemo(() => new Intl.Segmenter("ar", { granularity: "grapheme" }), []);
-    const segments = import_react3.default.useMemo(() => Array.from(segmenter.segment(text.normalize("NFC"))).map((s) => s.segment), [text, segmenter]);
-    const ENTRY_DUR = 18;
-    const isTypewriter = textAnimationType === "typewriter";
-    const xOffset = interpolate(relativeFrame, [0, 210], [0, 222], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-    const TYPEWRITER_RELATIVE_START = 5;
-    const charsToShow = Math.min(segments.length, Math.max(0, Math.floor((relativeFrame - TYPEWRITER_RELATIVE_START) / FRAMES_PER_CHAR)));
-    const visibleText = isTypewriter ? segments.slice(0, charsToShow).join("") : text;
-    const visibleLines = visibleText.split("++").map((l) => l.trim()).filter((l) => l.length > 0);
-    const isTyping = isTypewriter && charsToShow < segments.length;
-    const cursorOn = isTyping && Math.floor(relativeFrame / CURSOR_BLINK_RATE) % 2 === 0;
-    const strokeProgress = interpolate(relativeFrame, [0, 180], [0, 100], { extrapolateRight: "clamp" });
-    const strokeHeight = Math.max(3, Math.round(fontSize * 0.07));
-    const slideDurationFrames = 150;
-    const glassProgress = interpolate(relativeFrame, [0, Math.floor(slideDurationFrames / 2)], [-120, 200], { extrapolateRight: "clamp" });
-    const isVisibleDelay = relativeFrame > 0;
-    const entryOpacity = interpolate(relativeFrame, [0, ENTRY_DUR], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-    const vignetteOpacity = isVisibleDelay ? isTypewriter ? Math.min(1, relativeFrame / 10) : entryOpacity : 0;
-    const gradientHeight = Math.max(20, Math.round(bottomOffset / 1080 * 100) + 12);
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-        "div",
-        {
-          style: {
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            height: `${gradientHeight}%`,
-            background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%)",
-            opacity: vignetteOpacity,
-            pointerEvents: "none"
-          }
-        }
-      ),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-        "div",
-        {
-          style: {
-            position: "absolute",
-            bottom: `${bottomOffset}px`,
-            left: "20%",
-            // مكان البدأ أريد أن يكون بعد 20% من اليسار
-            width: "max-content",
-            maxWidth: "75%",
-            // يترك 5% مسافة آمنة على اليمين كحد أقصى
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            // محاذاة على اليمين للأسطر
-            gap: "12px",
-            // مسافة بسيطة بين السطرين
-            transform: `translateX(${xOffset}px)`
-          },
-          children: visibleLines.map((lineText, i) => {
-            const lineDelay = isTypewriter ? 0 : i * 15;
-            const lineRelativeFrame = Math.max(0, relativeFrame - lineDelay);
-            const lineEntryOpacity = interpolate(lineRelativeFrame, [0, ENTRY_DUR], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-            const lineEntryYOffset = interpolate(lineRelativeFrame, [0, ENTRY_DUR], [40, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-            const lineEntryBlur = interpolate(lineRelativeFrame, [0, ENTRY_DUR], [15, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-            const isLineVisibleDelay = lineRelativeFrame > 0;
-            const lineOpacity = isLineVisibleDelay ? isTypewriter ? Math.min(1, lineRelativeFrame / 10) : lineEntryOpacity : 0;
-            const lineFilter = isTypewriter ? "none" : `blur(${lineEntryBlur}px)`;
-            const lineYOffsetAnimated = isTypewriter ? 0 : lineEntryYOffset;
-            const isCurrentTypingLine = isTyping && i === visibleLines.length - 1;
-            const isRTL_line = isRTL(lineText);
-            return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-              "div",
-              {
-                style: {
-                  opacity: lineOpacity,
-                  filter: lineFilter,
-                  transform: `translateY(${lineYOffsetAnimated}px)`,
-                  position: "relative",
-                  overflow: "hidden",
-                  backgroundColor: bg,
-                  color,
-                  padding: `${Math.round(fontSize * 0.15)}px ${Math.round(fontSize * 0.45)}px`,
-                  // تقليل الهوامش الداخلية
-                  borderRadius: "0px",
-                  fontSize: `${fontSize}px`,
-                  // المستطيل خلف النص حدوده قائمة
-                  fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`,
-                  fontWeight: "bold",
-                  textAlign: isRTL_line ? "right" : "left",
-                  maxWidth: "100%",
-                  lineHeight: 1.4,
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
-                  border: `1px solid ${border}`,
-                  backdropFilter: "blur(8px)",
-                  direction: isRTL_line ? "rtl" : "ltr",
-                  letterSpacing: "0.5px"
-                },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                    "div",
-                    {
-                      style: {
-                        position: "absolute",
-                        ...i % 2 === 0 ? { top: 0, right: isRTL_line ? 0 : "auto", left: isRTL_line ? "auto" : 0 } : { bottom: 0, left: isRTL_line ? 0 : "auto", right: isRTL_line ? "auto" : 0 },
-                        height: `${strokeHeight}px`,
-                        width: `${strokeProgress}%`,
-                        backgroundColor: color,
-                        opacity: 0.85
-                      }
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                    "div",
-                    {
-                      style: {
-                        position: "absolute",
-                        top: 0,
-                        bottom: 0,
-                        left: 0,
-                        width: "40%",
-                        background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)",
-                        transform: `translateX(${glassProgress}%) skewX(-20deg)`,
-                        pointerEvents: "none",
-                        opacity: frame > Math.floor(slideDurationFrames / 2) ? 0 : 1
-                      }
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: isTypewriter ? { direction: isRTL_line ? "rtl" : "ltr" } : {}, children: [
-                    lineText.trim(),
-                    isCurrentTypingLine && cursorOn && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { display: "inline-block", width: "3px", height: "0.85em", backgroundColor: color, marginRight: "4px", verticalAlign: "middle", opacity: 0.8 } })
-                  ] })
-                ]
-              },
-              i
-            );
-          })
-        }
-      )
-    ] });
-  };
 
   // src/remotion/VisualEffects.tsx
-  var import_jsx_runtime5 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime21 = __toESM(require_jsx_runtime());
   var VisualEffects = ({ effects, cinematicBarSize = 6 }) => {
     if (!effects || effects.length === 0)
       return null;
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(AbsoluteFill, { style: { pointerEvents: "none", zIndex: 10 }, children: [
-      effects.includes("dust") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(DustParticles, {}),
-      effects.includes("light-leak") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(LightLeaks, {}),
-      effects.includes("bokeh") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(BokehEffect, {}),
-      effects.includes("scanlines") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Scanlines, {}),
-      effects.includes("grain") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(FilmGrain, {}),
-      effects.includes("vignette") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Vignette, {}),
-      effects.includes("cinematic-bars") && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CinematicBars, { barSize: cinematicBarSize })
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(AbsoluteFill, { style: { pointerEvents: "none", zIndex: 10 }, children: [
+      effects.includes("dust") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(DustParticles, {}),
+      effects.includes("light-leak") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(LightLeaks, {}),
+      effects.includes("bokeh") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(BokehEffect, {}),
+      effects.includes("scanlines") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Scanlines, {}),
+      effects.includes("grain") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(FilmGrain, {}),
+      effects.includes("vignette") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Vignette, {}),
+      effects.includes("cinematic-bars") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(CinematicBars, { barSize: cinematicBarSize })
     ] });
   };
   var DustParticles = () => {
@@ -14894,7 +16002,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       const isGolden = i % 4 === 0;
       return { x, y, size, opacity, isGolden };
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: particles.map((p, i) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: particles.map((p, i) => /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
       "circle",
       {
         cx: p.x,
@@ -14914,20 +16022,20 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const x2 = interpolate(Math.sin(frame * 0.014 + 2), [-1, 1], [1600, 2e3]);
     const y2 = interpolate(Math.cos(frame * 0.011 + 1), [-1, 1], [700, 1e3]);
     const op2 = interpolate(Math.sin(frame * 0.016 + 1), [-1, 1], [0.05, 0.18]);
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("defs", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("radialGradient", { id: "lg1", cx: "50%", cy: "50%", r: "50%", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("stop", { offset: "0%", stopColor: "#ff9900", stopOpacity: "1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("stop", { offset: "60%", stopColor: "#ff5500", stopOpacity: "0.4" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("stop", { offset: "100%", stopColor: "#ff3300", stopOpacity: "0" })
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("defs", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("radialGradient", { id: "lg1", cx: "50%", cy: "50%", r: "50%", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "0%", stopColor: "#ff9900", stopOpacity: "1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "60%", stopColor: "#ff5500", stopOpacity: "0.4" }),
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "100%", stopColor: "#ff3300", stopOpacity: "0" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("radialGradient", { id: "lg2", cx: "50%", cy: "50%", r: "50%", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("stop", { offset: "0%", stopColor: "#ffcc44", stopOpacity: "1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("stop", { offset: "70%", stopColor: "#ff8800", stopOpacity: "0.3" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("stop", { offset: "100%", stopColor: "#ff6600", stopOpacity: "0" })
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("radialGradient", { id: "lg2", cx: "50%", cy: "50%", r: "50%", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "0%", stopColor: "#ffcc44", stopOpacity: "1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "70%", stopColor: "#ff8800", stopOpacity: "0.3" }),
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "100%", stopColor: "#ff6600", stopOpacity: "0" })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
         "ellipse",
         {
           cx: x1,
@@ -14939,7 +16047,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           style: { mixBlendMode: "screen" }
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
         "ellipse",
         {
           cx: x2,
@@ -14963,12 +16071,12 @@ Check that all your Remotion packages are on the same version. If your dependenc
       { baseX: 960, baseY: 500, r: 130, color: "rgba(255,240,180,0.10)", speed: 0.013, phase: 0.7 },
       { baseX: 400, baseY: 600, r: 170, color: "rgba(180,220,255,0.10)", speed: 0.01, phase: 1.8 }
     ];
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("defs", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("filter", { id: "bokeh-blur", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("feGaussianBlur", { stdDeviation: "28" }) }) }),
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("defs", { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("filter", { id: "bokeh-blur", children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("feGaussianBlur", { stdDeviation: "28" }) }) }),
       circles.map((c, i) => {
         const dx = Math.sin(frame * c.speed + c.phase) * 60;
         const dy = Math.cos(frame * c.speed + c.phase + 0.5) * 40;
-        return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
           "circle",
           {
             cx: c.baseX + dx,
@@ -14986,7 +16094,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   var Scanlines = () => {
     const frame = useCurrentFrame();
     const drift = frame * 0.5 % 10;
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(AbsoluteFill, { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { style: {
       backgroundImage: "linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.25) 50%)",
       backgroundSize: "100% 8px",
       backgroundPosition: `0px ${drift}px`,
@@ -14997,7 +16105,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   var FilmGrain = () => {
     const frame = useCurrentFrame();
     const offset = frame % 10 * 10;
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(AbsoluteFill, { style: { overflow: "hidden", mixBlendMode: "overlay", opacity: 0.15 }, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { style: { overflow: "hidden", mixBlendMode: "overlay", opacity: 0.15 }, children: /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(
       "svg",
       {
         width: "200%",
@@ -15009,31 +16117,31 @@ Check that all your Remotion packages are on the same version. If your dependenc
           transform: `translate(${offset}px, ${offset}px)`
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("filter", { id: "film-grain", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("feTurbulence", { type: "fractalNoise", baseFrequency: "0.65", numOctaves: "1", seed: "10" }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("feColorMatrix", { type: "saturate", values: "0" })
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("filter", { id: "film-grain", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("feTurbulence", { type: "fractalNoise", baseFrequency: "0.65", numOctaves: "1", seed: "10" }),
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("feColorMatrix", { type: "saturate", values: "0" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("rect", { width: "100%", height: "100%", filter: "url(#film-grain)" })
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("rect", { width: "100%", height: "100%", filter: "url(#film-grain)" })
         ]
       }
     ) });
   };
   var Vignette = () => {
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(AbsoluteFill, { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { style: {
       background: "radial-gradient(circle, transparent 50%, rgba(0,0,0,0.85) 150%)",
       mixBlendMode: "multiply"
     } });
   };
   var CinematicBars = ({ barSize }) => {
     const heightStr = `${barSize}%`;
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(AbsoluteFill, { style: { display: "flex", flexDirection: "column", justifyContent: "space-between" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } })
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(AbsoluteFill, { style: { display: "flex", flexDirection: "column", justifyContent: "space-between" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } }),
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } })
     ] });
   };
 
   // src/remotion/MainComposition.tsx
-  var import_jsx_runtime6 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime22 = __toESM(require_jsx_runtime());
   var MainComposition = ({
     slides,
     overlay,
@@ -15045,7 +16153,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
     textBottomOffset,
     textFontSize,
     textPreset,
-    textAnimationType,
+    textAnimationType = "motion-blur",
+    parallaxEnabled = true,
     cinematicBarSize,
     voiceover,
     musicVolume = 50,
@@ -15062,16 +16171,16 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const EP_FADE_FRAMES = Math.round(EP_FADE_SEC * fps);
     const epStartFrame = endPage && EP_FRAMES > 0 ? Math.max(0, slideEndFrame - EP_FADE_FRAMES) : slideEndFrame;
     const totalVideoFrames = endPage && EP_FRAMES > 0 ? slideEndFrame + EP_FRAMES - EP_FADE_FRAMES : slideEndFrame;
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(AbsoluteFill, { style: { backgroundColor: "#000", direction: "ltr" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(AbsoluteFill, { style: { backgroundColor: "#000", direction: "ltr" }, children: [
       validSlides.map((slide, i) => {
         const startFrame = i * offsetFrames;
-        return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
           Sequence,
           {
             from: startFrame,
             durationInFrames: framesPerSlide,
             layout: "none",
-            children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
               Slide,
               {
                 slide,
@@ -15080,20 +16189,21 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 textBottomOffset: textBottomOffset ?? 160,
                 textFontSize: textFontSize ?? 46,
                 textPreset: textPreset ?? "dark",
-                textAnimationType: textAnimationType ?? "motion-blur"
+                textAnimationType: textAnimationType ?? "motion-blur",
+                parallaxEnabled: parallaxEnabled ?? true
               }
             )
           },
           slide.id
         );
       }),
-      endPage && EP_FRAMES > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      endPage && EP_FRAMES > 0 && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
         Sequence,
         {
           from: epStartFrame,
           durationInFrames: EP_FRAMES,
           layout: "none",
-          children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(EndPageFade, { src: endPage, fadeFrames: EP_FADE_FRAMES })
+          children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(EndPageFade, { src: endPage, fadeFrames: EP_FADE_FRAMES })
         }
       ),
       overlay && (() => {
@@ -15105,9 +16215,9 @@ Check that all your Remotion packages are on the same version. If your dependenc
           mixBlendMode: "screen",
           opacity: 0.85
         };
-        return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Sequence, { from: 0, durationInFrames: totalVideoFrames || durationInFrames, children: isImageOverlay ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Img, { src: overlay, style: overlayStyle }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Video, { src: overlay, style: overlayStyle, loop: true, muted: true }) });
+        return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Sequence, { from: 0, durationInFrames: totalVideoFrames || durationInFrames, children: isImageOverlay ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Img, { src: overlay, style: overlayStyle }) : /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Video, { src: overlay, style: overlayStyle, loop: true, muted: true }) });
       })(),
-      music && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      music && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
         Audio,
         {
           src: music,
@@ -15124,7 +16234,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           }
         }
       ),
-      voiceover && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      voiceover && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
         Audio,
         {
           src: voiceover,
@@ -15140,7 +16250,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           }
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(VisualEffects, { effects: effects ?? [], cinematicBarSize: cinematicBarSize ?? 6 })
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(VisualEffects, { effects: effects ?? [], cinematicBarSize: cinematicBarSize ?? 6 })
     ] });
   };
   var EndPageFade = ({ src, fadeFrames }) => {
@@ -15149,7 +16259,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(AbsoluteFill, { style: { backgroundColor: "#000", opacity }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { style: { backgroundColor: "#000", opacity }, children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
       Video,
       {
         src,
@@ -15159,7 +16269,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // desktop-v2/preview/player-entry.tsx
-  var import_jsx_runtime7 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime23 = __toESM(require_jsx_runtime());
   var FPS = 30;
   var PLAYER_STYLE = {
     width: "100%",
@@ -15184,8 +16294,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
     durationInFrames: 30
   };
   var PreviewApp = ({ payload }) => {
-    const playerRef = (0, import_react4.useRef)(null);
-    (0, import_react4.useEffect)(() => {
+    const playerRef = (0, import_react3.useRef)(null);
+    (0, import_react3.useEffect)(() => {
       currentPlayer = playerRef.current;
       return () => {
         if (currentPlayer === playerRef.current) {
@@ -15193,7 +16303,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
         }
       };
     }, [payload]);
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
       Player,
       {
         ref: playerRef,
@@ -15220,7 +16330,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
     if (!previewRoot || !previewContainer) {
       return;
     }
-    previewRoot.render(/* @__PURE__ */ (0, import_jsx_runtime7.jsx)(PreviewApp, { payload: currentPayload }));
+    previewRoot.render(/* @__PURE__ */ (0, import_jsx_runtime23.jsx)(PreviewApp, { payload: currentPayload }));
   }
   window.DesktopRemotionPreview = {
     mount(container2) {

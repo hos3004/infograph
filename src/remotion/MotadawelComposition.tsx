@@ -10,8 +10,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { MotadawelProps, MOTADAWEL_TEXT_PRESETS } from './types';
-import { MotadawelVisualEffects } from './MotadawelVisualEffects';
+import { MotadawelProps, MOTADAWEL_TEXT_PRESETS } from './motadawel/types';
+import { MotadawelVisualEffects } from './motadawel/MotadawelVisualEffects';
 
 const FONT_FAMILY = 'AvenirArabic';
 

@@ -157,7 +157,6 @@ const PreviewApp: React.FC<{ payload: PreviewPayload }> = ({ payload }) => {
         showVolumeControls
         moveToBeginningWhenEnded
         initiallyShowControls
-        id="MotadawelPreviewPlayer"
       />
     </div>
     </PreviewErrorBoundary>

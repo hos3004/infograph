@@ -19,7 +19,7 @@ export const MOTADAWEL_TEXT_PRESETS: Record<
 export type MotadawelProps = {
   // Media URLs (provided at runtime by the media server)
   introVideoUrl:  string | null;
-  mainVideoUrl:   string;
+  mainVideoUrl:   string | null;
   frameUrl:       string | null;  // PNG or video overlay on top of main
   outroVideoUrl:  string | null;
 

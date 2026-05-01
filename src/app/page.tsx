@@ -3,8 +3,25 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Player } from '@remotion/player';
 import { MainComposition } from '../remotion/MainComposition';
-import { SlideData, VisualEffect, TextPreset, TEXT_PRESETS } from '../remotion/types';
+import { SlideData, VisualEffect, TextPreset, TextAnimationPreset, TEXT_PRESETS } from '../remotion/types';
 import { Upload, Trash2, Video as VideoIcon, Save, Music, Layers, RefreshCw, Sparkles, Type } from 'lucide-react';
+
+const TEXT_ANIMATION_OPTIONS: { value: TextAnimationPreset; label: string }[] = [
+  { value: 'live-reveal-dot', label: 'كشف سينمائي حي + نقطة' },
+  { value: 'broadcast-split', label: 'أسطر إخبارية متتابعة' },
+  { value: 'number-hero', label: 'عداد إحصائي متحرك' },
+  { value: 'layered-title', label: 'نظام عنوان طبقي' },
+  { value: 'morph-compare', label: 'مقارنة متغيرة' },
+  { value: 'impact-shock', label: 'صدمة خفيفة' },
+  { value: 'word-by-word', label: 'كلمة كلمة' },
+  { value: 'timeline-marker', label: 'مؤشر زمني' },
+  { value: 'cinematic-reveal', label: 'كشف سينمائي بسيط' },
+  { value: 'split-lines-stagger', label: 'أسطر متعاكسة' },
+  { value: 'highlight-sweep', label: 'لمعة عابرة' },
+  { value: 'kinetic-keyword', label: 'كلمة بطلة' },
+  { value: 'motion-blur', label: 'حركة ضبابية قديمة' },
+  { value: 'typewriter', label: 'كتابة Typewriter قديمة' },
+];
 
 export default function Dashboard() {
   const [slides, setSlides] = useState<SlideData[]>([]);
@@ -18,6 +35,8 @@ export default function Dashboard() {
   const [textBottomOffset, setTextBottomOffset] = useState(160); // px in 1920×1080 (160 = TV safe zone)
   const [textFontSize, setTextFontSize]         = useState(46);  // px
   const [textPreset, setTextPreset]             = useState<TextPreset>('dark');
+  const [textAnimationType, setTextAnimationType] = useState<TextAnimationPreset>('live-reveal-dot');
+  const [parallaxEnabled, setParallaxEnabled] = useState(true);
 
   // Drag & drop state
   const dragIndexRef = useRef<number | null>(null);
@@ -167,6 +186,8 @@ export default function Dashboard() {
           textBottomOffset,
           textFontSize,
           textPreset,
+          textAnimationType,
+          parallaxEnabled,
           slideDurationInSeconds
         })
       });
@@ -209,6 +230,8 @@ export default function Dashboard() {
     textBottomOffset,
     textFontSize,
     textPreset,
+    textAnimationType,
+    parallaxEnabled,
   };
 
   return (
@@ -458,6 +481,69 @@ export default function Dashboard() {
                   </button>
                 );
               })}
+            </div>
+
+            <div style={{ marginTop: '0.9rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.82rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                نمط حركة النص
+              </label>
+              <select
+                className="input-field"
+                value={textAnimationType}
+                onChange={e => setTextAnimationType(e.target.value as TextAnimationPreset)}
+              >
+                {TEXT_ANIMATION_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginTop: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={parallaxEnabled}
+                  onChange={e => setParallaxEnabled(e.target.checked)}
+                  style={{ accentColor: 'var(--accent)' }}
+                />
+                تفعيل عمق سينمائي بعد الظهور
+              </label>
+
+              <div
+                style={{
+                  marginTop: '0.6rem',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.76rem',
+                  lineHeight: 1.7,
+                }}
+              >
+                يمكن استخدام ++ لتقسيم السطور.
+                <br />
+                number-hero: 60% ++ من الأسر تحت ضغط المعيشة
+                <br />
+                layered-title: سبب 01 ++ ارتفاع الأسعار ++ يضغط على الأسر
+                <br />
+                morph-compare: الفقر|الغلاء|البطالة|الديون
+                <br />
+                kinetic-keyword: أزمة **معيشة** ++ تظهر آثارها في كل بيت
+              </div>
             </div>
           </div>
 

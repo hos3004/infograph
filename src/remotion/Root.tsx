@@ -19,6 +19,8 @@ const defaultProps: CompositionProps = {
   textBottomOffset: 160,
   textFontSize:     65,
   textPreset:       'orange',
+  textAnimationType: 'live-reveal-dot',
+  parallaxEnabled: true,
 };
 
 export const RemotionRoot: React.FC = () => {
@@ -28,19 +30,19 @@ export const RemotionRoot: React.FC = () => {
         id="InfographicVideo"
         component={MainComposition}
         durationInFrames={150}   // overridden by calculateMetadata
-        fps={25}
+        fps={30}
         width={1920}
         height={1080}
         defaultProps={defaultProps}
         calculateMetadata={({ props }) => {
-          const fps = 25;
+          const fps = 30;
           const framesPerSlide = Math.floor(props.slideDurationInSeconds * fps);
           const overlapFrames  = 30;
           const validLength    = props.slides.filter(s => s.imageUrl).length;
 
           // Use the actual detected end-page duration passed from the UI
           const endPageFrames  = props.endPageDurationFrames ?? 0;
-          const EP_FADE_FRAMES = 50; // 2 seconds overlap at 25 fps
+          const EP_FADE_FRAMES = 60; // 2 seconds overlap at 30 fps
 
           let totalDuration = framesPerSlide; // minimum: 1 slide
           if (validLength > 0) {

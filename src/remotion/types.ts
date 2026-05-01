@@ -10,6 +10,22 @@ export type VisualEffect = 'dust' | 'light-leak' | 'bokeh' | 'scanlines' | 'grai
 // Text bar color presets
 export type TextPreset = 'dark' | 'gold' | 'blue' | 'red' | 'orange';
 
+export type TextAnimationPreset =
+  | 'motion-blur'
+  | 'typewriter'
+  | 'live-reveal-dot'
+  | 'broadcast-split'
+  | 'number-hero'
+  | 'layered-title'
+  | 'morph-compare'
+  | 'impact-shock'
+  | 'word-by-word'
+  | 'timeline-marker'
+  | 'cinematic-reveal'
+  | 'split-lines-stagger'
+  | 'highlight-sweep'
+  | 'kinetic-keyword';
+
 export const TEXT_PRESETS: Record<TextPreset, { bg: string; color: string; border: string }> = {
   dark:   { bg: 'rgba(0,0,0,0.65)',      color: '#ffffff', border: 'rgba(255,255,255,0.12)' },
   gold:   { bg: 'rgba(160,90,0,0.88)',   color: '#fff8e0', border: 'rgba(255,220,80,0.35)'  },
@@ -31,9 +47,10 @@ export type CompositionProps = {
   endPageDurationFrames: number;
 
   // Text appearance (applies to ALL slides)
-  textBottomOffset: number;  // px from bottom in 1920×1080 space (default 160 = safe for TV ticker)
+  textBottomOffset: number;  // px from bottom in 1920x1080 space (default 160 = safe for TV ticker)
   textFontSize: number;      // px (default 46)
   textPreset: TextPreset;    // color preset
-  textAnimationType?: 'motion-blur' | 'typewriter';
+  textAnimationType?: TextAnimationPreset;
+  parallaxEnabled?: boolean;
   cinematicBarSize?: number;
 };
