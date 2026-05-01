@@ -1,0 +1,95 @@
+{
+  "name": "infographic-video-generator",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "desktop:v2": "npm run desktop:v2:preview && electron ./desktop-v2/main.cjs",
+    "desktop:v2:preview": "node ./desktop-v2/scripts/build-preview-player.mjs && node ./desktop-v2/motadawel/scripts/build-preview-player-motadawel.mjs",
+    "desktop:v2:bundle": "node ./desktop-v2/scripts/build-remotion-bundle.mjs && node ./desktop-v2/motadawel/scripts/build-remotion-bundle-motadawel.mjs",
+    "desktop:v2:build": "npm run desktop:v2:preview && npm run desktop:v2:bundle && electron-builder --config ./desktop-v2/electron-builder.config.cjs --dir",
+    "desktop:v2:clean": "rimraf \"%LOCALAPPDATA%\\InfographicGeneratorDesktopV2Build\" \"%LOCALAPPDATA%\\InfographicGeneratorDesktopV2Dev\"",
+    "prebuild:desktop": "npm run clean && npm run build",
+    "build:desktop": "electron-builder --dir",
+    "clean": "rimraf temp output dist_electron"
+  },
+  "build": {
+    "appId": "com.infograph.generator",
+    "productName": "Infographic Generator",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "next-server",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".next/static",
+        "to": "next-server/.next/static",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "public",
+        "to": "next-server/public",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "public/assets",
+        "to": "Assets"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/@remotion/compositor-win32-x64-msvc/**/*",
+      "node_modules/ffmpeg-static/**/*",
+      "node_modules/ffprobe-static/**/*"
+    ],
+    "win": {
+      "target": "dir",
+      "icon": "public/favicon.ico"
+    }
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.140",
+    "@remotion/player": "4.0.140",
+    "@remotion/renderer": "4.0.140",
+    "@remotion/transitions": "4.0.140",
+    "busboy": "^1.6.0",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
+    "lucide-react": "^0.379.0",
+    "next": "14.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.140"
+  },
+  "devDependencies": {
+    "@types/busboy": "^1.5.4",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "puppeteer-core": "^24.41.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.5"
+  }
+}

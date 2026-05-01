@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' data: file: blob:; img-src 'self' data: file: blob:; media-src 'self' data: file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Infographic Generator Desktop V2</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar panel">
+        <div class="brand brand-logo-wrap">
+          <img id="brand-logo" class="brand-logo-image" alt="Infographic Generator" />
+          <p class="muted runtime-summary is-hidden" id="runtime-summary">Loading desktop runtime...</p>
+        </div>
+
+        <div class="actions utility-actions">
+          <button id="refresh-assets-btn" class="btn secondary">تحديث الأصول</button>
+          <button id="open-output-btn" class="btn secondary">فتح المخرجات</button>
+        </div>
+
+        <section class="settings-group settings-card">
+          <div class="settings-card-header">
+            <h2>الأصول الثابتة</h2>
+            <p class="muted">تظهر في المعاينة والرندر النهائي عند اختيارها.</p>
+          </div>
+          <label class="setting-field">
+            <span class="setting-label">الإطار العلوي</span>
+            <select id="overlay-select"></select>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">الموسيقى</span>
+            <select id="music-select"></select>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">شاشة الختام</span>
+            <select id="endpage-select"></select>
+          </label>
+          <p class="muted setting-note" id="endpage-duration-hint"></p>
+        </section>
+
+        <section class="settings-group settings-card text-settings-card">
+          <div class="settings-title-row">
+            <h2>إعدادات النص</h2>
+            <span class="settings-title-icon">T</span>
+          </div>
+
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">موضع النص من الأسفل</span>
+              <span id="bottom-offset-value" class="slider-setting-value">160px</span>
+            </div>
+            <input id="bottom-offset-input" class="range-input" type="range" min="40" max="280" step="10" value="160" />
+            <div class="slider-setting-scale">
+              <span>أسفل الشاشة</span>
+              <span>وسط الشاشة</span>
+            </div>
+          </div>
+
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">حجم الخط</span>
+              <span id="font-size-value" class="slider-setting-value">46px</span>
+            </div>
+            <input id="font-size-input" class="range-input" type="range" min="24" max="96" step="2" value="46" />
+            <div class="slider-setting-scale">
+              <span>صغير</span>
+              <span>كبير</span>
+            </div>
+          </div>
+
+          <div class="preset-setting">
+            <div class="option-section-title">لون شريط النص</div>
+            <div class="preset-grid" id="text-preset-buttons">
+              <button type="button" class="preset-chip preset-orange" data-preset="orange" aria-label="برتقالي" title="برتقالي"></button>
+              <button type="button" class="preset-chip preset-red" data-preset="red" aria-label="أحمر" title="أحمر"></button>
+              <button type="button" class="preset-chip preset-blue" data-preset="blue" aria-label="أزرق" title="أزرق"></button>
+              <button type="button" class="preset-chip preset-gold" data-preset="gold" aria-label="ذهبي" title="ذهبي"></button>
+              <button type="button" class="preset-chip preset-dark" data-preset="dark" aria-label="داكن" title="داكن"></button>
+            </div>
+            <select id="text-preset-select" class="ui-hidden">
+              <option value="dark">Dark</option>
+              <option value="gold">Gold</option>
+              <option value="blue">Blue</option>
+              <option value="red">Red</option>
+              <option value="orange">Orange</option>
+            </select>
+          </div>
+
+          <div class="effects-setting">
+            <div class="option-section-title">تأثيرات بصرية (اختياري)</div>
+            <div class="effects-chip-group">
+              <label class="effect-chip">
+                <input type="checkbox" value="dust" class="effect-checkbox" checked />
+                <span>مؤثر</span>
+              </label>
+              <label class="effect-chip">
+                <input type="checkbox" value="light-leak" class="effect-checkbox" checked />
+                <span>إضاءة</span>
+              </label>
+              <label class="effect-chip">
+                <input type="checkbox" value="bokeh" class="effect-checkbox" checked />
+                <span>بريق</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-group settings-card compact-settings-card">
+          <div class="settings-title-row">
+            <h2>مدة الشرائح</h2>
+            <span class="settings-title-icon">⏱</span>
+          </div>
+          <label class="setting-field">
+            <span class="setting-label">مدة كل شريحة بالثواني</span>
+            <input id="slide-duration-input" type="number" min="2" max="15" value="5" />
+          </label>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section class="panel preview-panel">
+          <div class="preview-header-simple">
+            <h2>المعاينة <span>(Preview)</span></h2>
+            <button id="preview-fullscreen-btn" class="preview-icon-btn" title="ملء الشاشة" aria-label="ملء الشاشة">⛶</button>
+          </div>
+
+          <div id="preview-stage-shell" class="preview-stage-shell">
+            <div id="preview-stage" class="preview-stage"></div>
+            <div class="preview-player-ui">
+              <div class="preview-player-bottom">
+                <div class="preview-control-row">
+                  <button id="preview-play-btn" class="preview-icon-btn large" title="تشغيل أو إيقاف" aria-label="تشغيل أو إيقاف">▶</button>
+                  <button id="preview-mute-btn" class="preview-icon-btn" title="كتم الصوت" aria-label="كتم الصوت">🔊</button>
+                  <span id="preview-time-inline" class="preview-time-inline">00:00 / 00:00</span>
+                  <button id="preview-restart-btn" class="preview-icon-btn" title="إعادة من البداية" aria-label="إعادة من البداية">↺</button>
+                </div>
+                <input id="preview-seek" class="preview-seek" type="range" min="0" max="1000" value="0" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel render-panel">
+          <div class="render-panel-header">
+            <div>
+              <h2 id="status-title">رندر الفيديو</h2>
+              <p class="muted" id="status-text"></p>
+            </div>
+            <button id="render-btn" class="btn primary">رندر الفيديو</button>
+          </div>
+          <div class="progress-header">
+            <span id="progress-label">لم يبدأ الرندر بعد</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <div id="render-result" class="render-result"></div>
+        </section>
+
+        <section class="panel slides-panel">
+          <div class="section-header section-header-slides">
+            <h2>الشرائح (<span id="slides-count">0</span>)</h2>
+            <button id="pick-slides-btn" class="btn secondary add-slides-btn">إضافة صور</button>
+          </div>
+          <div id="slides-list" class="slides-list"></div>
+          <div id="empty-state" class="empty-state" role="button" tabindex="0" aria-label="إضافة صور الشرائح">
+            <div class="empty-state-icon" aria-hidden="true">⤴</div>
+            <strong>اسحب وأفلت الصور هنا أو اضغط للاختيار</strong>
+            <span>الصور سيتم قصها تلقائياً لملء الشاشة بدون أي مساحات فارغة</span>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./generated/preview-player.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

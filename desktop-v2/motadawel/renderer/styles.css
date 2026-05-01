@@ -1,0 +1,460 @@
+/* =========================================================
+   Modern Professional Video Editor Theme (CapCut / Premiere Pro Style)
+   ========================================================= */
+
+:root {
+  --bg-app: #0e0e11;
+  --bg-panel: #16181d;
+  --bg-input: #08090a;
+  --border-color: #272a33;
+  --border-focus: #4b5263;
+  --text-main: #e2e8f0;
+  --text-muted: #848d9c;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --danger: #e11d48;
+  --success: #10b981;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --font-arabic: 'AvenirArabic', 'Segoe UI', Tahoma, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-arabic);
+  overflow: hidden; /* يمنع ظهور أشرطة التمرير على مستوى الشاشة بالكامل */
+}
+
+/* =========================================================
+   Layout: 3-Column Grid
+   ========================================================= */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  height: 100vh;
+  width: 100vw;
+}
+
+.panel-side {
+  background-color: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px;
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+}
+.panel-right { border-right: none; }
+.panel-left { border-left: none; }
+
+.panel-center {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-app);
+  overflow: hidden;
+  padding: 24px;
+}
+
+/* =========================================================
+   Typography & Utilities
+   ========================================================= */
+.muted-text { color: var(--text-muted); font-size: 12px; }
+.accent-text { color: var(--accent); font-weight: bold; font-family: monospace; font-size: 13px;}
+.text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: ltr; text-align: right;}
+.is-hidden, .ui-hidden { display: none !important; }
+
+/* =========================================================
+   Buttons & Inputs
+   ========================================================= */
+button, select, input, textarea {
+  font-family: inherit;
+  outline: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn.primary { background-color: var(--accent); color: white; }
+.btn.primary:hover { background-color: var(--accent-hover); }
+
+.btn.secondary { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+.btn.secondary:hover { background-color: var(--border-focus); }
+
+.btn.ghost { background-color: transparent; border: 1px solid transparent; color: var(--text-muted); padding: 6px; }
+.btn.ghost:hover { color: var(--text-main); background-color: rgba(255,255,255,0.05); }
+
+.btn-large { padding: 12px 24px; font-size: 14px; flex: 1; }
+
+select, .modern-textarea {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+select:focus, .modern-textarea:focus { border-color: var(--accent); }
+
+.modern-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* =========================================================
+   Panel Sections (Properties & Assets)
+   ========================================================= */
+.brand-wrap { text-align: center; margin-bottom: 20px; }
+.brand-logo-image { max-width: 180px; height: auto; }
+
+.app-nav-pills {
+  display: flex;
+  background-color: var(--bg-input);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.app-nav-pills .nav-btn {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: var(--radius-sm);
+  transition: 0.2s;
+}
+.app-nav-pills .nav-btn.is-active { background-color: var(--border-focus); color: white; }
+
+.utility-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
+
+.prop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+.prop-section:last-child { margin-bottom: 0; }
+
+.prop-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 8px;
+}
+
+.prop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.prop-field span { font-size: 12px; color: var(--text-muted); }
+
+.video-picker-box {
+  background-color: var(--bg-input);
+  border: 1px dashed var(--border-focus);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+
+/* =========================================================
+   Sliders (Transform & Text Properties)
+   ========================================================= */
+.prop-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.range-input {
+  --range-fill: 50%;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent) var(--range-fill), var(--border-color) var(--range-fill));
+  border-radius: 2px;
+  margin: 8px 0;
+}
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  border-radius: 50%;
+  cursor: ew-resize;
+  border: 2px solid var(--accent);
+}
+
+/* =========================================================
+   Presets & Effects (Chips & Buttons)
+   ========================================================= */
+.color-presets {
+  display: flex;
+  gap: 8px;
+}
+.preset-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  padding: 0;
+}
+.preset-btn:hover { transform: scale(1.1); }
+.preset-btn.is-active { border-color: white; box-shadow: 0 0 8px rgba(255,255,255,0.3); transform: scale(1.1); }
+
+.preset-dark { background: #101722; }
+.preset-gold { background: #a96e12; }
+.preset-blue { background: #0f42a0; }
+.preset-red { background: #9b1515; }
+.preset-orange { background: #e36a00; }
+
+.effects-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.effect-chip {
+  cursor: pointer;
+  position: relative;
+}
+.effect-chip input { position: absolute; opacity: 0; }
+.effect-chip span {
+  display: block;
+  padding: 6px 12px;
+  font-size: 12px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--text-muted);
+  user-select: none;
+  transition: 0.2s;
+}
+.effect-chip input:checked + span {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* =========================================================
+   Preview Stage & Render Zone (Center Column)
+   ========================================================= */
+.preview-header h2 {
+  font-size: 16px;
+  margin: 0 0 16px 0;
+  font-weight: bold;
+}
+
+.preview-stage-container {
+  flex: 1;
+  background-image: 
+    linear-gradient(45deg, #111 25%, transparent 25%), 
+    linear-gradient(-45deg, #111 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #111 75%), 
+    linear-gradient(-45deg, transparent 75%, #111 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  background-color: #080808;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 20px;
+}
+
+/* عزل اتجاه شاشة المعاينة وأدوات التحكم لمنع إزاحة مشغل Remotion */
+.preview-stage,
+.preview-player-bottom,
+.preview-control-row,
+.preview-time-inline,
+.preview-seek {
+  direction: ltr !important;
+}
+
+.preview-stage {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #000;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  position: relative;
+  border: 1px solid #222;
+}
+
+/* هام جداً: عدم التدخل في الـ Layout الداخلي لمشغل Remotion 
+  يجب إزالة أي display: flex !important كانت موجودة سابقاً هنا
+*/
+#preview-exact-root,
+.preview-exact-root,
+.preview-exact-root > div {
+  width: 100%;
+  height: 100%;
+  display: block; /* أو يمكن تركها بدون display تماماً ليأخذ خصائص Remotion الافتراضية */
+}
+
+.render-zone {
+  margin-top: 24px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.render-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.turbo-switch {
+  cursor: pointer;
+}
+.turbo-switch input { display: none; }
+.turbo-switch span {
+  display: inline-block;
+  padding: 10px 16px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-muted);
+  transition: 0.2s;
+  user-select: none;
+}
+.turbo-switch input:checked + span {
+  background-color: rgba(225, 29, 72, 0.15);
+  border-color: var(--danger);
+  color: #fb7185;
+}
+
+/* Status & Progress */
+.status-panel {
+  background-color: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-focus);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.status-panel.error { border-color: var(--danger); background-color: rgba(225, 29, 72, 0.05); }
+
+.status-info { display: flex; flex-direction: column; gap: 4px; }
+.status-info strong { font-size: 14px; }
+
+.progress-box { display: flex; flex-direction: column; gap: 6px; }
+.progress-track {
+  height: 8px;
+  background-color: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background-color: var(--accent);
+  transition: width 0.3s;
+}
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+/* Hide Remotion internal Player controls if any leak through */
+.preview-uses-remotion .preview-player-ui,
+.preview-uses-remotion .preview-header-simple .preview-icon-btn {
+  display: none !important;
+}
+
+/* Custom Scrollbar for Panels */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-focus); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1200px) {
+  .editor-layout {
+    grid-template-columns: 240px 1fr 260px;
+  }
+}/* =========================================================
+   Success Modal
+   ========================================================= */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: 0.3s;
+}
+.modal-overlay.is-active {
+  opacity: 1; pointer-events: auto;
+}
+.success-modal {
+  background: var(--bg-panel); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); padding: 32px; width: 420px;
+  text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 40px rgba(16, 185, 129, 0.2);
+  transform: scale(0.9) translateY(20px); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.modal-overlay.is-active .success-modal {
+  transform: scale(1) translateY(0);
+}
+.modal-icon {
+  font-size: 64px; margin-bottom: 16px; animation: bounceBounce 2s infinite;
+}
+@keyframes bounceBounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-20px); }
+  60% { transform: translateY(-10px); }
+}
+.modal-title { font-size: 24px; color: var(--success); margin: 0 0 8px; font-weight: bold; }
+.modal-desc { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+.modal-path { background: var(--bg-input); padding: 12px; border-radius: var(--radius-sm); font-family: monospace; font-size: 12px; word-break: break-all; margin-bottom: 24px; color: var(--text-main); user-select: auto; }
+.modal-actions { display: flex; gap: 12px; justify-content: center; }

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' data: file: blob:; img-src 'self' data: file: blob:; media-src 'self' data: file: blob: ; style-src 'self' 'unsafe-inline'; script-src 'self';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mutadawel Video Generator Desktop V2</title>
+    <link rel="stylesheet" href="../../renderer/styles.css" />
+  </head>
+  <body>
+    <div class="shell" id="app-motadawel">
+      <aside class="sidebar panel">
+        <div class="brand brand-logo-wrap">
+          <img id="brand-logo" class="brand-logo-image" alt="Infographic Generator" />
+          <p class="muted runtime-summary is-hidden" id="runtime-summary">Loading desktop runtime...</p>
+        </div>
+
+        <nav class="app-nav" style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <a href="../../renderer/index.html" class="nav-btn btn secondary" style="flex: 1; text-align: center; text-decoration: none;">انفوجرافيك</a>
+          <a href="#" class="nav-btn btn primary" style="flex: 1; text-align: center; text-decoration: none;">متداول</a>
+        </nav>
+
+        <div class="actions utility-actions">
+          <button id="refresh-assets-btn" class="btn secondary">تحديث الأصول</button>
+          <button id="open-output-btn" class="btn secondary">فتح المخرجات</button>
+        </div>
+
+        <!-- MOTADAWEL SPECIFIC SETTINGS -->
+        <section class="settings-group settings-card">
+          <div class="settings-card-header">
+            <h2>أصول وأجزاء متداول</h2>
+            <p class="muted">اختر مقدمة، خاتمة، وإطار للفيديو إذا أردت.</p>
+          </div>
+          <label class="setting-field">
+            <span class="setting-label">المقدمة (Intro)</span>
+            <select id="motadawel-intro-select"></select>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">الإطار (Frame)</span>
+            <select id="motadawel-frame-select"></select>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">الخاتمة (Outro)</span>
+            <select id="motadawel-outro-select"></select>
+          </label>
+        </section>
+
+        <section class="settings-group settings-card">
+          <div class="settings-title-row">
+            <h2>إعدادات المعاينة (الفيديو الرئيسي)</h2>
+          </div>
+          
+          <div class="setting-field" style="flex-direction: column; align-items: stretch; margin-bottom: 12px;">
+            <button id="pick-main-video-btn" class="btn primary">اختيار فيديو</button>
+            <p class="muted" style="margin-top: 6px; font-size: 11px; text-align: center; word-break: break-all;" id="main-video-label-name">لم يتم الاختيار</p>
+          </div>
+
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">تكبير الفيديو الرئيسي</span>
+              <span id="motadawel-scale-value" class="slider-setting-value">1.0</span>
+            </div>
+            <input id="motadawel-scale-input" class="range-input" type="range" min="0.5" max="3" step="0.1" value="1" />
+            <div class="slider-setting-scale">
+              <span>تصغير</span>
+              <span>×1</span>
+              <span>تكبير</span>
+            </div>
+          </div>
+          
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">تحريك يمين / يسار</span>
+              <span id="motadawel-x-value" class="slider-setting-value">0px</span>
+            </div>
+            <input id="motadawel-x-input" class="range-input" type="range" min="-960" max="960" step="10" value="0" />
+            <div class="slider-setting-scale">
+              <span>يسار</span>
+              <span>وسط</span>
+              <span>يمين</span>
+            </div>
+          </div>
+          
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">تحريك فوق / تحت</span>
+              <span id="motadawel-y-value" class="slider-setting-value">0px</span>
+            </div>
+            <input id="motadawel-y-input" class="range-input" type="range" min="-540" max="540" step="10" value="0" />
+            <div class="slider-setting-scale">
+              <span>فوق</span>
+              <span>وسط</span>
+              <span>تحت</span>
+            </div>
+          </div>
+
+          <label class="setting-field" style="flex-direction: column; align-items: stretch; margin-bottom: 0;">
+             <span class="setting-label" style="margin-bottom: 4px;">النص الثابت (عنوان المحتوى)</span>
+             <textarea id="motadawel-text-input" rows="2" class="text-input" placeholder="اكتب النص الذي يظهر أسفل الشاشة..."></textarea>
+          </label>
+
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">موضع النص من الأسفل</span>
+              <span id="motadawel-bottom-offset-value" class="slider-setting-value">160px</span>
+            </div>
+            <input id="motadawel-bottom-offset-input" class="range-input" type="range" min="40" max="280" step="10" value="160" />
+            <div class="slider-setting-scale">
+              <span>أسفل الشاشة</span>
+              <span>أعلى</span>
+            </div>
+          </div>
+
+          <div class="slider-setting">
+            <div class="slider-setting-header">
+              <span class="slider-setting-title">حجم الخط</span>
+              <span id="motadawel-font-size-value" class="slider-setting-value">46px</span>
+            </div>
+            <input id="motadawel-font-size-input" class="range-input" type="range" min="24" max="96" step="2" value="46" />
+            <div class="slider-setting-scale">
+              <span>صغير</span>
+              <span>كبير</span>
+            </div>
+          </div>
+
+          <div class="preset-setting">
+            <div class="option-section-title">لون شريط النص</div>
+            <div class="preset-grid" id="motadawel-text-preset-buttons">
+              <button type="button" class="preset-chip preset-orange" data-preset="orange" aria-label="برتقالي" title="برتقالي"></button>
+              <button type="button" class="preset-chip preset-red" data-preset="red" aria-label="أحمر" title="أحمر"></button>
+              <button type="button" class="preset-chip preset-blue" data-preset="blue" aria-label="أزرق" title="أزرق"></button>
+              <button type="button" class="preset-chip preset-gold" data-preset="gold" aria-label="ذهبي" title="ذهبي"></button>
+              <button type="button" class="preset-chip preset-dark" data-preset="dark" aria-label="داكن" title="داكن"></button>
+            </div>
+            <select id="motadawel-text-preset-select" class="ui-hidden">
+              <option value="dark">Dark</option>
+              <option value="gold">Gold</option>
+              <option value="blue">Blue</option>
+              <option value="red">Red</option>
+              <option value="orange">Orange</option>
+            </select>
+          </div>
+
+          <div class="effects-setting">
+            <div class="option-section-title">تأثيرات بصرية (اختياري)</div>
+            <div class="effects-chip-group">
+              <label class="effect-chip">
+                <input type="checkbox" value="dust" class="motadawel-effect-checkbox" />
+                <span>مؤثر</span>
+              </label>
+              <label class="effect-chip">
+                <input type="checkbox" value="light-leak" class="motadawel-effect-checkbox" />
+                <span>إضاءة</span>
+              </label>
+              <label class="effect-chip">
+                <input type="checkbox" value="bokeh" class="motadawel-effect-checkbox" />
+                <span>بريق</span>
+              </label>
+            </div>
+          </div>
+        </section>
+        
+        <button class="btn secondary" id="reset-motadawel-btn">إعادة تعيين الأبعاد والحجم</button>
+
+      </aside>
+
+      <main class="main-content">
+        <div class="preview-area panel">
+          <div class="status-panel is-hidden" id="status-panel">
+            <h3 id="status-title">Status</h3>
+            <p id="status-message" class="muted">Message details...</p>
+            <div class="progress-container is-hidden" id="progress-container">
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progress-bar"></div>
+              </div>
+              <div class="progress-text">
+                <span id="progress-label">Preparing...</span>
+                <span id="progress-percent">0%</span>
+              </div>
+            </div>
+            <div id="render-result" class="render-result-slot"></div>
+          </div>
+
+        <section class="panel preview-panel">
+          <div class="preview-header-simple">
+            <h2>المعاينة <span>(Preview)</span></h2>
+          </div>
+          <div class="preview-stage-shell">
+            <div class="preview-stage" id="preview-stage">
+              <div id="preview-exact-root"></div>
+            </div>
+          </div>
+        </section>
+
+          <div class="render-panel-header" style="display: flex; justify-content: flex-end; width: 100%; margin-top: 24px;">
+            <div class="actions main-actions" style="display: flex; flex-direction: row; align-items: center; justify-content: flex-end; gap: 12px; width: 100%;">
+              <label class="effect-chip" style="font-size: 15px; margin: 0; padding: 12px 18px; border-color: #ff5050; color: #ffadad;" title="يرفع سرعة المعالجة على حساب المعالج">
+                <input type="checkbox" id="turbo-render-checkbox" />
+                <span>Turbo 🚀</span>
+              </label>
+              <button id="render-btn" class="btn primary large" style="padding: 12px 24px; font-size: 15px; flex: 1; max-width: 300px;">
+                <span class="icon">▶</span>
+                رندر فيديو متداول
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Isolated mutadawel player and app logic -->
+    <script src="generated/preview-player-motadawel.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
