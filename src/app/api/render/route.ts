@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
       textBottomOffset,
       textFontSize,
       textPreset,
+      textAnimationType,
+      parallaxEnabled,
       slideDurationInSeconds,
     } = payload;
 
@@ -36,6 +38,8 @@ export async function POST(request: NextRequest) {
     console.log(`  textBottomOffset:     ${textBottomOffset ?? 160}`);
     console.log(`  textFontSize:         ${textFontSize ?? 46}`);
     console.log(`  textPreset:           ${textPreset ?? 'dark'}`);
+    console.log(`  textAnimationType:    ${textAnimationType ?? 'motion-blur'}`);
+    console.log(`  parallaxEnabled:      ${parallaxEnabled ?? true}`);
     console.log(`  slideDuration:        ${slideDurationInSeconds ?? 5}s`);
 
     // ── Base URL: reuse the running Next.js server ─────────────────────────────
@@ -96,6 +100,8 @@ export async function POST(request: NextRequest) {
       textBottomOffset:      textBottomOffset ?? 160,
       textFontSize:          textFontSize ?? 46,
       textPreset:            textPreset ?? 'dark',
+      textAnimationType:     textAnimationType ?? 'motion-blur',
+      parallaxEnabled:       parallaxEnabled ?? true,
     };
 
     console.log('[Render] Resolved endPage URL:', resolvedEndPage);

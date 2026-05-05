@@ -4,6 +4,22 @@ const { resolveAssetPath } = require('./assets.cjs');
 
 const ALLOWED_EFFECTS = new Set(['dust', 'light-leak', 'bokeh', 'scanlines', 'grain', 'vignette', 'cinematic-bars']);
 const ALLOWED_PRESETS = new Set(['dark', 'gold', 'blue', 'red', 'orange']);
+const ALLOWED_TEXT_ANIMATIONS = new Set([
+  'motion-blur',
+  'typewriter',
+  'live-reveal-dot',
+  'broadcast-split',
+  'number-hero',
+  'layered-title',
+  'morph-compare',
+  'impact-shock',
+  'word-by-word',
+  'timeline-marker',
+  'cinematic-reveal',
+  'split-lines-stagger',
+  'highlight-sweep',
+  'kinetic-keyword',
+]);
 
 function normalizeSlides(slides) {
   return (Array.isArray(slides) ? slides : [])
@@ -55,7 +71,8 @@ function normalizeRenderPayload(paths, payload) {
     textBottomOffset: normalizeNumber(payload.textBottomOffset, 160),
     textFontSize: normalizeNumber(payload.textFontSize, 65),
     textPreset,
-    textAnimationType: payload.textAnimationType === 'typewriter' ? 'typewriter' : 'motion-blur',
+    textAnimationType: ALLOWED_TEXT_ANIMATIONS.has(payload.textAnimationType) ? payload.textAnimationType : 'motion-blur',
+    parallaxEnabled: payload.parallaxEnabled !== false,
     cinematicBarSize: normalizeNumber(payload.cinematicBarSize, 6),
     musicVolume: normalizeNumber(payload.musicVolume, 50),
     voiceoverVolume: normalizeNumber(payload.voiceoverVolume, 100),

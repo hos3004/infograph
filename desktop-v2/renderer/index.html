@@ -180,16 +180,18 @@
 
             <div class="setting-group prop-field">
               <label class="setting-label">حركة دخول النص</label>
-              <div style="display: flex; gap: 1rem; margin-top: 0.5rem;" class="effects-chips">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;" class="effect-chip">
-                  <input type="radio" name="textAnimationType" value="typewriter" class="animation-radio" />
-                  <span>آلة كاتبة</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;" class="effect-chip">
-                  <input type="radio" name="textAnimationType" value="motion-blur" class="animation-radio" checked />
-                  <span>دخول ناعم (Blur)</span>
-                </label>
+              <div
+                id="text-animation-buttons"
+                class="animation-preset-grid"
+                role="radiogroup"
+                aria-label="حركة دخول النص"
+              >
               </div>
+              <label class="parallax-toggle">
+                <input id="parallax-enabled-checkbox" type="checkbox" checked />
+                <span>تفعيل عمق سينمائي بعد الظهور</span>
+              </label>
+              <span class="muted-text">يمكن استخدام ++ لتقسيم السطور، و ** ** لتحديد كلمة بطلة.</span>
             </div>
 
             <div class="setting-group prop-field">

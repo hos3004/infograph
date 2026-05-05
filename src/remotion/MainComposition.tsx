@@ -15,7 +15,8 @@ export const MainComposition: React.FC<CompositionProps> = ({
   textBottomOffset,
   textFontSize,
   textPreset,
-  textAnimationType,
+  textAnimationType = 'motion-blur',
+  parallaxEnabled = true,
   cinematicBarSize,
   voiceover,
   musicVolume = 50,
@@ -69,6 +70,7 @@ export const MainComposition: React.FC<CompositionProps> = ({
               textFontSize={textFontSize ?? 46}
               textPreset={textPreset ?? 'dark'}
               textAnimationType={textAnimationType ?? 'motion-blur'}
+              parallaxEnabled={parallaxEnabled ?? true}
             />
           </Sequence>
         );

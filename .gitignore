@@ -30,3 +30,7 @@ tsconfig.tsbuildinfo
 
 # Local tooling state
 .agent/
+
+# Claude Code worktrees and local agent state
+.claude/
+dev/
