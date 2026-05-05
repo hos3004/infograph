@@ -3,6 +3,9 @@ export type SlideData = {
   imageUrl: string;
   text?: string;
   isMuted?: boolean;
+  voiceoverText?: string;
+  voiceoverUrl?: string;
+  voiceoverDurationMs?: number;
 };
 
 export type VisualEffect = 'dust' | 'light-leak' | 'bokeh' | 'scanlines' | 'grain' | 'vignette' | 'cinematic-bars';
