@@ -72,6 +72,12 @@ export const MainComposition: React.FC<CompositionProps> = ({
               textAnimationType={textAnimationType ?? 'motion-blur'}
               parallaxEnabled={parallaxEnabled ?? true}
             />
+            {slide.voiceoverUrl && (
+              <Audio
+                src={slide.voiceoverUrl}
+                volume={(typeof voiceoverVolume === 'number' && !isNaN(voiceoverVolume)) ? voiceoverVolume / 100 : 1}
+              />
+            )}
           </Sequence>
         );
       })}
