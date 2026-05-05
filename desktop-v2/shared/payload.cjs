@@ -9,6 +9,7 @@ const ALLOWED_TEXT_ANIMATIONS = new Set([
   'typewriter',
   'live-reveal-dot',
   'broadcast-split',
+  'news-ledger',
   'number-hero',
   'layered-title',
   'morph-compare',

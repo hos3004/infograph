@@ -12,6 +12,7 @@ const TRANSITION_OPTIONS = ['fade', 'light-leak', 'blur-wipe'];
 const TEXT_ANIMATION_OPTIONS = [
   { value: 'live-reveal-dot', label: 'كشف سينمائي حي + نقطة' },
   { value: 'broadcast-split', label: 'أسطر إخبارية متتابعة' },
+  { value: 'news-ledger', label: 'تقرير بصري / News Ledger' },
   { value: 'number-hero', label: 'عداد إحصائي متحرك' },
   { value: 'layered-title', label: 'نظام عنوان طبقي' },
   { value: 'morph-compare', label: 'مقارنة متغيرة' },

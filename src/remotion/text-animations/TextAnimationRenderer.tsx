@@ -6,6 +6,7 @@ import { MotionBlurText } from './presets/MotionBlurText';
 import { TypewriterText } from './presets/TypewriterText';
 import { LiveRevealDotText } from './presets/LiveRevealDotText';
 import { BroadcastSplitText } from './presets/BroadcastSplitText';
+import { NewsLedgerText } from './presets/NewsLedgerText';
 import { NumberHeroText } from './presets/NumberHeroText';
 import { LayeredTitleText } from './presets/LayeredTitleText';
 import { MorphCompareText } from './presets/MorphCompareText';
@@ -44,6 +45,9 @@ export const TextAnimationRenderer: React.FC<Props> = (props) => {
 
       case 'broadcast-split':
         return <BroadcastSplitText {...props} />;
+
+      case 'news-ledger':
+        return <NewsLedgerText {...props} />;
 
       case 'number-hero':
         return <NumberHeroText {...props} />;
