@@ -39,12 +39,39 @@ function makeSafeFileName(text: string): string {
   return `voiceover-${Date.now()}-${hash}.mp3`;
 }
 
+function getGoogleEndpointAndHeaders(): { endpoint: string; headers: Record<string, string> } | null {
+  const apiKey = process.env.GOOGLE_TTS_API_KEY;
+  const accessToken = process.env.GOOGLE_TTS_ACCESS_TOKEN;
+
+  if (accessToken) {
+    return {
+      endpoint: 'https://texttospeech.googleapis.com/v1/text:synthesize',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    };
+  }
+
+  if (apiKey) {
+    return {
+      endpoint: `https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(apiKey)}`,
+      headers: { 'Content-Type': 'application/json' },
+    };
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.GOOGLE_TTS_API_KEY;
-    if (!apiKey) {
+    const auth = getGoogleEndpointAndHeaders();
+    if (!auth) {
       return NextResponse.json(
-        { error: 'GOOGLE_TTS_API_KEY is missing. Add it to your local .env file.' },
+        {
+          error: 'Google TTS credentials are missing.',
+          details: 'Set GOOGLE_TTS_API_KEY or GOOGLE_TTS_ACCESS_TOKEN in your local environment.',
+        },
         { status: 500 }
       );
     }
@@ -66,26 +93,23 @@ export async function POST(request: NextRequest) {
     const speakingRate = clampNumber(payload.speakingRate, 0.92, 0.25, 4);
     const pitch = clampNumber(payload.pitch, 0, -20, 20);
 
-    const googleResponse = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: { text },
-          voice: {
-            languageCode,
-            ...(voiceName ? { name: voiceName } : {}),
-            ssmlGender,
-          },
-          audioConfig: {
-            audioEncoding: 'MP3',
-            speakingRate,
-            pitch,
-          },
-        }),
-      }
-    );
+    const googleResponse = await fetch(auth.endpoint, {
+      method: 'POST',
+      headers: auth.headers,
+      body: JSON.stringify({
+        input: { text },
+        voice: {
+          languageCode,
+          ...(voiceName ? { name: voiceName } : {}),
+          ssmlGender,
+        },
+        audioConfig: {
+          audioEncoding: 'MP3',
+          speakingRate,
+          pitch,
+        },
+      }),
+    });
 
     const result = (await googleResponse.json()) as GoogleTtsResponse;
 
@@ -113,6 +137,7 @@ export async function POST(request: NextRequest) {
       url: `/api/temp/voiceovers/${fileName}`,
       bytes: audioBuffer.length,
       provider: 'google-tts',
+      authMode: process.env.GOOGLE_TTS_ACCESS_TOKEN ? 'bearer' : 'api-key',
       languageCode,
       voiceName: voiceName || null,
       speakingRate,
