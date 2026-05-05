@@ -48,6 +48,7 @@ const state = {
   endPageDurationFrames: 0,
   endPageDurationSource: '',
   isRendering: false,
+  isGeneratingVoiceovers: false,
   lastRender: null,
   selectedSlideId: null,
   draggedSlideId: null,
@@ -1336,6 +1337,17 @@ function buildSlideCard(slide, index) {
   });
   main.appendChild(textInput);
 
+  if (slide.voiceoverUrl) {
+    const voBadge = document.createElement('div');
+    voBadge.className = 'slide-voiceover-badge';
+    voBadge.textContent = '✅ صوت';
+    voBadge.style.fontSize = '0.78rem';
+    voBadge.style.color = '#10b981';
+    voBadge.style.marginTop = '4px';
+    voBadge.style.fontWeight = '600';
+    main.appendChild(voBadge);
+  }
+
   const deleteBtn = document.createElement('button');
   deleteBtn.type = 'button';
   deleteBtn.className = 'slide-delete-btn';
@@ -1465,6 +1477,102 @@ function buildRenderPayload() {
     cinematicBarSize: Number(state.cinematicBarSize || 6),
     turboMode: document.getElementById('turbo-render-checkbox')?.checked || false,
   };
+}
+
+async function handleGenerateVoiceovers() {
+  if (state.isGeneratingVoiceovers) return;
+  const slidesWithText = state.slides.filter((s) => s.text && s.text.trim().length > 0);
+  if (slidesWithText.length === 0) {
+    setStatus('تنبيه', 'يرجى إضافة نص لشريحة واحدة على الأقل');
+    return;
+  }
+
+  state.isGeneratingVoiceovers = true;
+  const btn = document.getElementById('generate-voiceovers-btn');
+  const originalLabel = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'جاري توليد السرد الصوتي...';
+  }
+  setStatus('توليد السرد الصوتي', 'جاري الاتصال بخدمة Google TTS...');
+
+  try {
+    const payload = {
+      slides: state.slides.map((slide) => ({
+        id: slide.id,
+        imageUrl: slide.fileUrl || slide.imagePath,
+        text: slide.text,
+        isMuted: slide.isMuted,
+        voiceoverText: slide.voiceoverText,
+        voiceoverUrl: slide.voiceoverUrl,
+        voiceoverDurationMs: slide.voiceoverDurationMs,
+      })),
+      maxWords: 24,
+      languageCode: 'ar-XA',
+      ssmlGender: 'MALE',
+      speakingRate: 0.92,
+      pitch: 0,
+    };
+
+    const response = await fetch('http://localhost:3000/api/voiceover/generate-slides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.details || data?.error || 'فشل توليد السرد الصوتي');
+    }
+
+    if (Array.isArray(data.slides)) {
+      const updatedById = new Map(data.slides.map((s) => [s.id, s]));
+      state.slides = state.slides.map((slide) => {
+        const updated = updatedById.get(slide.id);
+        if (!updated) return slide;
+        return {
+          ...slide,
+          voiceoverText: updated.voiceoverText,
+          voiceoverUrl: updated.voiceoverUrl,
+          voiceoverDurationMs: updated.voiceoverDurationMs,
+        };
+      });
+      renderSlides();
+    }
+
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      setStatus('انتهى مع تحذيرات', `تم التوليد مع ${data.errors.length} خطأ`);
+      console.warn('Voiceover errors', data.errors);
+    } else {
+      setStatus('اكتمل', 'تم توليد السرد الصوتي بنجاح');
+    }
+  } catch (error) {
+    setStatus('فشل توليد السرد', error.message || 'تأكد من تشغيل خادم Next على :3000');
+  } finally {
+    state.isGeneratingVoiceovers = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalLabel;
+    }
+  }
+}
+
+function ensureGenerateVoiceoversButton() {
+  if (document.getElementById('generate-voiceovers-btn')) return;
+  const renderBtn = elements.renderBtn;
+  if (!renderBtn || !renderBtn.parentElement) return;
+  const btn = document.createElement('button');
+  btn.id = 'generate-voiceovers-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary';
+  btn.style.padding = '0.4rem 1rem';
+  btn.style.borderRadius = '6px';
+  btn.style.fontSize = '0.9rem';
+  btn.style.minHeight = '48px';
+  btn.style.gap = '0.4rem';
+  btn.textContent = 'توليد سرد صوتي للشرائح';
+  btn.addEventListener('click', handleGenerateVoiceovers);
+  renderBtn.parentElement.insertBefore(btn, renderBtn);
 }
 
 async function handleRender() {
@@ -1634,6 +1742,7 @@ elements.emptyState.addEventListener('keydown', (event) => {
 elements.refreshAssetsBtn.addEventListener('click', refreshAssets);
 elements.openOutputBtn.addEventListener('click', () => window.desktopApi.openOutputFolder());
 elements.renderBtn.addEventListener('click', handleRender);
+ensureGenerateVoiceoversButton();
 if (elements.cancelRenderBtn) {
   elements.cancelRenderBtn.addEventListener('click', async () => {
     const canceled = await window.desktopApi.cancelRender({ model: 'infograph' });

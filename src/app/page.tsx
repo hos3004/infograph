@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
+  const [isGeneratingVoiceovers, setIsGeneratingVoiceovers] = useState(false);
   const [renderResult, setRenderResult] = useState<{ url: string; path: string } | null>(null);
 
   const toggleEffect = (fx: VisualEffect) =>
@@ -166,6 +167,49 @@ export default function Dashboard() {
 
   const removeSlide = (id: string) => {
     setSlides(slides.filter(s => s.id !== id));
+  };
+
+  const handleGenerateVoiceovers = async () => {
+    const slidesWithText = slides.filter(s => s.text && s.text.trim().length > 0);
+    if (slidesWithText.length === 0) {
+      return alert('يرجى إضافة نص لشريحة واحدة على الأقل');
+    }
+
+    setIsGeneratingVoiceovers(true);
+    try {
+      const res = await fetch('/api/voiceover/generate-slides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slides,
+          maxWords: 24,
+          languageCode: 'ar-XA',
+          ssmlGender: 'MALE',
+          speakingRate: 0.92,
+          pitch: 0,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert('فشل توليد السرد الصوتي: ' + (data?.details || data?.error || 'خطأ غير معروف'));
+        return;
+      }
+
+      if (Array.isArray(data.slides)) {
+        setSlides(data.slides);
+      }
+
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        alert(`تم التوليد مع ${data.errors.length} خطأ — راجع وحدة التحكم للتفاصيل`);
+        console.warn('Voiceover errors', data.errors);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('خطأ في الاتصال بالخادم');
+    } finally {
+      setIsGeneratingVoiceovers(false);
+    }
   };
 
   const handleRender = async () => {
@@ -314,6 +358,11 @@ export default function Dashboard() {
                         value={slide.text}
                         onChange={(e) => updateSlideText(slide.id, e.target.value)}
                       />
+                      {slide.voiceoverUrl && (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--success)', marginTop: '4px' }}>
+                          ✅ صوت
+                        </div>
+                      )}
                    </div>
                    <button className="btn btn-danger" style={{padding: '0.75rem'}} onClick={() => removeSlide(slide.id)} title="حذف">
                      <Trash2 size={20} />
@@ -617,9 +666,18 @@ export default function Dashboard() {
         </div>
 
         <div className="panel" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'var(--accent)', padding: '0.8rem', marginTop: '-0.3rem' }}>
-           <button 
-             className="btn btn-success" 
-             style={{ width: '100%', fontSize: '1.1rem', padding: '0.8rem' }} 
+           <button
+             className="btn"
+             style={{ width: '100%', fontSize: '1rem', padding: '0.7rem', marginBottom: '0.6rem' }}
+             onClick={handleGenerateVoiceovers}
+             disabled={isGeneratingVoiceovers || slides.length === 0}
+           >
+             {isGeneratingVoiceovers ? 'جاري توليد السرد الصوتي...' : 'توليد سرد صوتي للشرائح'}
+           </button>
+
+           <button
+             className="btn btn-success"
+             style={{ width: '100%', fontSize: '1.1rem', padding: '0.8rem' }}
              onClick={handleRender}
              disabled={isRendering}
            >
