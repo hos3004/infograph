@@ -7,6 +7,11 @@ import { promises as fs } from 'fs';
 export const maxDuration = 1200;
 export const dynamic = 'force-dynamic';
 
+function resolveHttpUrl(baseUrl: string, value?: string | null): string | null {
+  if (!value) return null;
+  return value.startsWith('http') ? value : `${baseUrl}${value}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
@@ -71,9 +76,8 @@ export async function POST(request: NextRequest) {
     // (Remotion's headless Chrome blocks file:// but allows http://)
     const resolvedSlides = (slides ?? []).map((slide: any) => ({
       ...slide,
-      imageUrl: slide.imageUrl?.startsWith('http')
-        ? slide.imageUrl
-        : `${baseUrl}${slide.imageUrl}`,
+      imageUrl: resolveHttpUrl(baseUrl, slide.imageUrl) ?? '',
+      voiceoverUrl: resolveHttpUrl(baseUrl, slide.voiceoverUrl),
     }));
 
     const resolvedMusic = music
