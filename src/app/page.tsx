@@ -9,6 +9,7 @@ import { Upload, Trash2, Video as VideoIcon, Save, Music, Layers, RefreshCw, Spa
 const TEXT_ANIMATION_OPTIONS: { value: TextAnimationPreset; label: string }[] = [
   { value: 'live-reveal-dot', label: 'كشف سينمائي حي + نقطة' },
   { value: 'broadcast-split', label: 'أسطر إخبارية متتابعة' },
+  { value: 'news-ledger', label: 'تقرير بصري / News Ledger' },
   { value: 'number-hero', label: 'عداد إحصائي متحرك' },
   { value: 'layered-title', label: 'نظام عنوان طبقي' },
   { value: 'morph-compare', label: 'مقارنة متغيرة' },
