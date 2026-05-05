@@ -6,8 +6,9 @@ import crypto from 'crypto';
 export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
 
-type GoogleTtsRequest = {
+type GeminiTtsRequest = {
   text?: string;
+  // legacy/future hooks (kept for API stability with callers)
   languageCode?: string;
   voiceName?: string;
   ssmlGender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
@@ -15,19 +16,28 @@ type GoogleTtsRequest = {
   pitch?: number;
 };
 
-type GoogleTtsResponse = {
-  audioContent?: string;
+type GeminiResponse = {
+  candidates?: Array<{
+    finishReason?: string;
+    content?: {
+      parts?: Array<{
+        inlineData?: {
+          mimeType?: string;
+          data?: string;
+        };
+      }>;
+    };
+  }>;
   error?: {
     message?: string;
     status?: string;
   };
+  promptFeedback?: { blockReason?: string };
 };
 
-function clampNumber(value: unknown, fallback: number, min: number, max: number): number {
-  const next = Number(value);
-  if (!Number.isFinite(next)) return fallback;
-  return Math.min(max, Math.max(min, next));
-}
+// Gemini TTS prebuilt voices — Charon and Aoede handle Arabic well
+const DEFAULT_VOICE = 'Charon';
+const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
 function normalizeText(text: unknown): string {
   if (typeof text !== 'string') return '';
@@ -36,115 +46,185 @@ function normalizeText(text: unknown): string {
 
 function makeSafeFileName(text: string): string {
   const hash = crypto.createHash('sha1').update(text).digest('hex').slice(0, 10);
-  return `voiceover-${Date.now()}-${hash}.mp3`;
+  return `voiceover-${Date.now()}-${hash}.wav`;
 }
 
-function getGoogleEndpointAndHeaders(): { endpoint: string; headers: Record<string, string> } | null {
-  const apiKey = process.env.GOOGLE_TTS_API_KEY;
-  const accessToken = process.env.GOOGLE_TTS_ACCESS_TOKEN;
+function getApiKey(): string | null {
+  return (
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    process.env.GOOGLE_TTS_API_KEY ||
+    null
+  );
+}
 
-  if (accessToken) {
-    return {
-      endpoint: 'https://texttospeech.googleapis.com/v1/text:synthesize',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    };
-  }
+/**
+ * Wrap raw PCM (signed 16-bit little-endian) in a WAV container.
+ * Gemini TTS returns mimeType "audio/L16;codec=pcm;rate=24000" — mono 24 kHz.
+ */
+function pcmToWav(
+  pcmBuffer: Buffer,
+  sampleRate = 24000,
+  channels = 1,
+  bitsPerSample = 16
+): Buffer {
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const dataSize = pcmBuffer.length;
+  const fileSize = 36 + dataSize;
 
-  if (apiKey) {
-    return {
-      endpoint: `https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(apiKey)}`,
-      headers: { 'Content-Type': 'application/json' },
-    };
-  }
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(fileSize, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16); // PCM format chunk size
+  header.writeUInt16LE(1, 20); // audio format = PCM
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
 
-  return null;
+  return Buffer.concat([header, pcmBuffer]);
+}
+
+/**
+ * Parse the sample rate out of mimeType "audio/L16;codec=pcm;rate=24000".
+ * Falls back to 24 kHz which is Gemini's documented default.
+ */
+function parseSampleRate(mimeType: string | undefined): number {
+  if (!mimeType) return 24000;
+  const match = mimeType.match(/rate=(\d+)/);
+  if (!match) return 24000;
+  const rate = parseInt(match[1], 10);
+  return Number.isFinite(rate) && rate > 0 ? rate : 24000;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = getGoogleEndpointAndHeaders();
-    if (!auth) {
+    const apiKey = getApiKey();
+    if (!apiKey) {
       return NextResponse.json(
         {
-          error: 'Google TTS credentials are missing.',
-          details: 'Set GOOGLE_TTS_API_KEY or GOOGLE_TTS_ACCESS_TOKEN in your local environment.',
+          error: 'Gemini API key is missing.',
+          details:
+            'Set GEMINI_API_KEY (preferred) or GOOGLE_GENAI_API_KEY or GOOGLE_TTS_API_KEY in .env.local.',
         },
         { status: 500 }
       );
     }
 
-    const payload = (await request.json()) as GoogleTtsRequest;
+    const payload = (await request.json()) as GeminiTtsRequest;
     const text = normalizeText(payload.text);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    if (text.length > 900) {
-      return NextResponse.json({ error: 'Text is too long. Keep each slide narration short.' }, { status: 400 });
-    }
-
-    const languageCode = payload.languageCode || 'ar-XA';
-    const voiceName = payload.voiceName || undefined;
-    const ssmlGender = payload.ssmlGender || 'MALE';
-    const speakingRate = clampNumber(payload.speakingRate, 0.92, 0.25, 4);
-    const pitch = clampNumber(payload.pitch, 0, -20, 20);
-
-    const googleResponse = await fetch(auth.endpoint, {
-      method: 'POST',
-      headers: auth.headers,
-      body: JSON.stringify({
-        input: { text },
-        voice: {
-          languageCode,
-          ...(voiceName ? { name: voiceName } : {}),
-          ssmlGender,
-        },
-        audioConfig: {
-          audioEncoding: 'MP3',
-          speakingRate,
-          pitch,
-        },
-      }),
-    });
-
-    const result = (await googleResponse.json()) as GoogleTtsResponse;
-
-    if (!googleResponse.ok || !result.audioContent) {
+    if (text.length > 1500) {
       return NextResponse.json(
-        {
-          error: 'Google TTS request failed',
-          details: result.error?.message || googleResponse.statusText,
-        },
-        { status: googleResponse.status || 502 }
+        { error: 'Text is too long. Keep each slide narration short.' },
+        { status: 400 }
       );
     }
 
-    const voiceoverDir = path.join(process.env.TEMP_DIR || path.join(process.cwd(), 'temp'), 'voiceovers');
+    const voiceName = payload.voiceName || DEFAULT_VOICE;
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${encodeURIComponent(
+      apiKey
+    )}`;
+
+    // English instruction prefix is required so Gemini TTS treats the rest as a transcript.
+    // Without this prefix, the model often replies with text instead of audio for Arabic input.
+    // We try a couple of phrasings to recover from the rare "model produced text" case.
+    const promptVariants = [`Read aloud: ${text}`, `Say in a clear neutral voice: ${text}`];
+
+    let result: GeminiResponse | null = null;
+    let lastStatus = 0;
+    let lastStatusText = '';
+    let inlineData: { mimeType?: string; data?: string } | undefined;
+    let lastFinishReason: string | undefined;
+
+    for (const ttsPrompt of promptVariants) {
+      const geminiResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: ttsPrompt }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName },
+              },
+            },
+          },
+        }),
+      });
+
+      lastStatus = geminiResponse.status;
+      lastStatusText = geminiResponse.statusText;
+      result = (await geminiResponse.json()) as GeminiResponse;
+
+      if (!geminiResponse.ok) {
+        return NextResponse.json(
+          {
+            error: 'Gemini TTS request failed',
+            details: result.error?.message || lastStatusText,
+          },
+          { status: lastStatus || 502 }
+        );
+      }
+
+      const candidate = result.candidates?.[0];
+      lastFinishReason = candidate?.finishReason;
+      inlineData = candidate?.content?.parts?.find((p) => p.inlineData)?.inlineData;
+
+      if (inlineData?.data) break; // got audio — stop retrying
+    }
+
+    if (!inlineData?.data) {
+      return NextResponse.json(
+        {
+          error: 'Gemini did not return audio',
+          details:
+            lastFinishReason === 'OTHER'
+              ? 'Model produced text instead of audio after retries. Try shortening the text.'
+              : result?.promptFeedback?.blockReason || lastFinishReason || 'Unknown',
+        },
+        { status: 502 }
+      );
+    }
+
+    const pcmBuffer = Buffer.from(inlineData.data, 'base64');
+    const sampleRate = parseSampleRate(inlineData.mimeType);
+    const wavBuffer = pcmToWav(pcmBuffer, sampleRate);
+
+    const voiceoverDir = path.join(
+      process.env.TEMP_DIR || path.join(process.cwd(), 'temp'),
+      'voiceovers'
+    );
     await fs.mkdir(voiceoverDir, { recursive: true });
 
     const fileName = makeSafeFileName(text);
     const filePath = path.join(voiceoverDir, fileName);
-    const audioBuffer = Buffer.from(result.audioContent, 'base64');
-    await fs.writeFile(filePath, audioBuffer);
+    await fs.writeFile(filePath, wavBuffer);
 
     return NextResponse.json({
       success: true,
       fileName,
       url: `/api/temp/voiceovers/${fileName}`,
-      bytes: audioBuffer.length,
-      provider: 'google-tts',
-      authMode: process.env.GOOGLE_TTS_ACCESS_TOKEN ? 'bearer' : 'api-key',
-      languageCode,
-      voiceName: voiceName || null,
-      speakingRate,
-      pitch,
+      bytes: wavBuffer.length,
+      provider: 'gemini-tts',
+      model: GEMINI_TTS_MODEL,
+      voiceName,
+      sampleRate,
     });
   } catch (error: any) {
-    console.error('[Google TTS] Error:', error);
+    console.error('[Gemini TTS] Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate voiceover', details: error?.message || String(error) },
       { status: 500 }
