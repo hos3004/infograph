@@ -16628,25 +16628,34 @@ Check that all your Remotion packages are on the same version. If your dependenc
     return /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)(AbsoluteFill, { style: { backgroundColor: "#000", direction: "ltr" }, children: [
       validSlides.map((slide, i) => {
         const startFrame = i * offsetFrames;
-        return /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)(
           Sequence,
           {
             from: startFrame,
             durationInFrames: framesPerSlide,
             layout: "none",
-            children: /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
-              Slide,
-              {
-                slide,
-                index: i,
-                isFirst: i === 0,
-                textBottomOffset: textBottomOffset ?? 160,
-                textFontSize: textFontSize ?? 46,
-                textPreset: textPreset ?? "dark",
-                textAnimationType: textAnimationType ?? "motion-blur",
-                parallaxEnabled: parallaxEnabled ?? true
-              }
-            )
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
+                Slide,
+                {
+                  slide,
+                  index: i,
+                  isFirst: i === 0,
+                  textBottomOffset: textBottomOffset ?? 160,
+                  textFontSize: textFontSize ?? 46,
+                  textPreset: textPreset ?? "dark",
+                  textAnimationType: textAnimationType ?? "motion-blur",
+                  parallaxEnabled: parallaxEnabled ?? true
+                }
+              ),
+              slide.voiceoverUrl && /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
+                Audio,
+                {
+                  src: slide.voiceoverUrl,
+                  volume: typeof voiceoverVolume === "number" && !isNaN(voiceoverVolume) ? voiceoverVolume / 100 : 1
+                }
+              )
+            ]
           },
           slide.id
         );
