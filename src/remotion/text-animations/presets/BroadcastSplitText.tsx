@@ -4,6 +4,7 @@ import { TEXT_PRESETS } from '../../types';
 import type { TextAnimationCommonProps } from '../TextAnimationRenderer';
 import { splitLines } from '../textUtils';
 import { FONT_FAMILY, getTextContainerStyle } from '../textStyles';
+import { DataPulseSquares } from '../DataPulseSquares';
 
 export const BroadcastSplitText: React.FC<TextAnimationCommonProps> = ({
   text,
@@ -39,6 +40,7 @@ export const BroadcastSplitText: React.FC<TextAnimationCommonProps> = ({
           >
             <div
               style={{
+                position: 'relative',
                 transform: `translateY(${y}%)`,
                 background: index === 0 ? 'rgba(0,0,0,0.68)' : 'rgba(0,45,130,0.72)',
                 color: colors.color,
@@ -53,6 +55,15 @@ export const BroadcastSplitText: React.FC<TextAnimationCommonProps> = ({
                 letterSpacing: 0,
               }}
             >
+              {index === 0 && (
+                <DataPulseSquares
+                  frame={frame}
+                  color="#ffe19a"
+                  size={7}
+                  count={3}
+                  startFrame={42}
+                />
+              )}
               {line}
             </div>
           </div>

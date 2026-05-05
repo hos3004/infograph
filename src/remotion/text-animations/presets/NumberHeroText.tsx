@@ -1,20 +1,82 @@
 import React from 'react';
 import { interpolate } from 'remotion';
-import { TEXT_PRESETS } from '../../types';
 import type { TextAnimationCommonProps } from '../TextAnimationRenderer';
 import { extractNumberHero } from '../textUtils';
 import { FONT_FAMILY } from '../textStyles';
 
+function normalizeDigit(char: string): string {
+  const code = char.charCodeAt(0);
+  if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
+  if (code >= 0x06f0 && code <= 0x06f9) return String(code - 0x06f0);
+  return char;
+}
+
+function getNumberParts(valueText: string): {
+  target: number | null;
+  decimals: number;
+  unit: string;
+  fallback: string;
+} {
+  const normalized = Array.from(valueText).map(normalizeDigit).join('');
+  const match = normalized.match(/\d+(?:[.,]\d+)?/);
+  const hasPercent = valueText.includes('%') || valueText.includes('٪');
+
+  if (!match) {
+    return {
+      target: null,
+      decimals: 0,
+      unit: hasPercent ? '%' : '',
+      fallback: valueText,
+    };
+  }
+
+  const numericText = match[0].replace(',', '.');
+  const decimalPart = numericText.split('.')[1] ?? '';
+  const extraUnit = normalized
+    .replace(match[0], '')
+    .replace(/[.,\s]/g, '')
+    .replace(/٪/g, '%');
+
+  return {
+    target: Number(numericText),
+    decimals: decimalPart.length,
+    unit: hasPercent ? '%' : extraUnit,
+    fallback: valueText,
+  };
+}
+
+function splitDescription(description: string): string[] {
+  const words = description.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 3) return description ? [description] : [];
+
+  const middle = Math.min(words.length - 1, Math.ceil(words.length * 0.65));
+  return [
+    words.slice(0, middle).join(' '),
+    words.slice(middle).join(' '),
+  ].filter(Boolean);
+}
+
 export const NumberHeroText: React.FC<TextAnimationCommonProps> = ({
   text,
   frame,
-  bottomOffset,
   fontSize,
-  textPreset,
 }) => {
   const { valueText, description } = extractNumberHero(text);
-  const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-  const numberScale = interpolate(frame, [0, 18, 28], [0.55, 1.14, 1], {
+  const { target, decimals, unit, fallback } = getNumberParts(valueText);
+  const descriptionLines = splitDescription(description);
+
+  const countProgress = interpolate(frame, [0, 48], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const easedCountProgress = 1 - Math.pow(1 - countProgress, 3);
+  const displayNumber = target === null
+    ? fallback
+    : decimals > 0
+      ? (target * easedCountProgress).toFixed(decimals)
+      : String(Math.round(target * easedCountProgress));
+
+  const numberScale = interpolate(frame, [0, 18, 34], [0.62, 1.12, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -22,11 +84,22 @@ export const NumberHeroText: React.FC<TextAnimationCommonProps> = ({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const descY = interpolate(frame, [22, 42], [24, 0], {
+
+  const unitIn = interpolate(frame, [10, 24], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const descOpacity = interpolate(frame, [22, 38], [0, 1], {
+  const unitPulseGate = interpolate(frame, [44, 58], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const unitPulse = 1 + Math.sin(Math.max(0, frame - 48) / 8) * 0.18 * unitPulseGate;
+
+  const descY = interpolate(frame, [30, 52], [28, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const descOpacity = interpolate(frame, [30, 48], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -35,48 +108,91 @@ export const NumberHeroText: React.FC<TextAnimationCommonProps> = ({
     <div
       style={{
         position: 'absolute',
-        bottom: bottomOffset,
-        right: 180,
-        maxWidth: 900,
-        textAlign: 'right',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
         direction: 'rtl',
         fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`,
+        pointerEvents: 'none',
       }}
     >
       <div
         style={{
-          display: 'inline-block',
-          fontSize: fontSize * 1.95,
-          fontWeight: 1000,
-          color: '#ffe19a',
-          lineHeight: 1,
-          opacity: numberOpacity,
-          transform: `scale(${numberScale})`,
-          transformOrigin: 'right center',
-          textShadow: '0 0 36px rgba(255,225,154,0.5)',
+          width: 'min(1080px, 82%)',
+          transform: 'translateY(18px)',
         }}
       >
-        {valueText}
-      </div>
-      {description ? (
         <div
           style={{
-            marginTop: 12,
-            background: colors.bg,
-            color: colors.color,
-            border: `1px solid ${colors.border}`,
-            padding: `${Math.round(fontSize * 0.16)}px ${Math.round(fontSize * 0.45)}px`,
-            fontSize: fontSize * 0.82,
-            fontWeight: 900,
-            lineHeight: 1.4,
-            opacity: descOpacity,
-            transform: `translateY(${descY}px)`,
-            boxShadow: '0 12px 34px rgba(0,0,0,0.45)',
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            direction: 'ltr',
+            gap: Math.max(8, fontSize * 0.16),
+            opacity: numberOpacity,
+            transform: `scale(${numberScale})`,
+            transformOrigin: 'center center',
+            filter: `drop-shadow(0 0 34px rgba(255,225,154,0.48)) drop-shadow(0 14px 28px rgba(0,0,0,0.62))`,
           }}
         >
-          {description}
+          {unit ? (
+            <span
+              style={{
+                display: 'inline-block',
+                color: '#ffffff',
+                fontSize: fontSize * 1.22,
+                fontWeight: 1000,
+                lineHeight: 1,
+                opacity: unitIn,
+                transform: `translateY(-${fontSize * 0.1}px) scale(${unitIn * unitPulse})`,
+                transformOrigin: 'center center',
+                textShadow: '0 8px 28px rgba(0,0,0,0.72)',
+              }}
+            >
+              {unit}
+            </span>
+          ) : null}
+          <span
+            style={{
+              display: 'inline-block',
+              color: '#ffe19a',
+              fontSize: fontSize * 2.45,
+              fontWeight: 1000,
+              lineHeight: 0.92,
+              letterSpacing: 0,
+              minWidth: `${Math.max(2, displayNumber.length)}ch`,
+              textAlign: 'left',
+            }}
+          >
+            {displayNumber}
+          </span>
         </div>
-      ) : null}
+
+        {descriptionLines.length > 0 ? (
+          <div
+            style={{
+              marginTop: Math.max(12, fontSize * 0.22),
+              color: '#ffffff',
+              fontSize: fontSize * 0.92,
+              fontWeight: 1000,
+              lineHeight: 1.18,
+              opacity: descOpacity,
+              transform: `translateY(${descY}px)`,
+              textShadow: '0 10px 30px rgba(0,0,0,0.78)',
+              whiteSpace: 'normal',
+            }}
+          >
+            {descriptionLines.map((line, index) => (
+              <span key={`${line}-${index}`} style={{ display: 'block' }}>
+                {line}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };

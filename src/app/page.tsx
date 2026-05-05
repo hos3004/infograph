@@ -494,17 +494,47 @@ export default function Dashboard() {
               >
                 نمط حركة النص
               </label>
-              <select
-                className="input-field"
-                value={textAnimationType}
-                onChange={e => setTextAnimationType(e.target.value as TextAnimationPreset)}
+              <div
+                role="radiogroup"
+                aria-label="نمط حركة النص"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: '0.45rem',
+                }}
               >
-                {TEXT_ANIMATION_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                {TEXT_ANIMATION_OPTIONS.map(option => {
+                  const active = textAnimationType === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      title={option.value}
+                      onClick={() => setTextAnimationType(option.value)}
+                      style={{
+                        minHeight: 42,
+                        padding: '0.45rem 0.55rem',
+                        borderRadius: 8,
+                        border: `1px solid ${active ? 'var(--accent)' : 'var(--border-color)'}`,
+                        background: active ? 'rgba(59,130,246,0.16)' : 'var(--bg-input)',
+                        color: active ? 'var(--accent)' : 'var(--text-primary)',
+                        cursor: 'pointer',
+                        fontSize: '0.76rem',
+                        fontWeight: active ? 800 : 600,
+                        lineHeight: 1.35,
+                        textAlign: 'center',
+                        fontFamily: 'inherit',
+                        boxShadow: active ? '0 0 0 2px rgba(59,130,246,0.16)' : 'none',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
 
               <label
                 style={{

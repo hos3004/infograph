@@ -4,6 +4,7 @@ import { TEXT_PRESETS } from '../../types';
 import type { TextAnimationCommonProps } from '../TextAnimationRenderer';
 import { splitLines } from '../textUtils';
 import { getLineStyle, getTextContainerStyle } from '../textStyles';
+import { DataPulseSquares } from '../DataPulseSquares';
 
 export const CinematicRevealText: React.FC<TextAnimationCommonProps> = ({
   text,
@@ -42,13 +43,25 @@ export const CinematicRevealText: React.FC<TextAnimationCommonProps> = ({
             }}
           >
             <div
-              style={getLineStyle({
-                bg: index === 0 ? colors.bg : 'linear-gradient(90deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24))',
-                color: colors.color,
-                border: colors.border,
-                fontSize,
-              })}
+              style={{
+                position: 'relative',
+                ...getLineStyle({
+                  bg: index === 0 ? colors.bg : 'linear-gradient(90deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24))',
+                  color: colors.color,
+                  border: colors.border,
+                  fontSize,
+                }),
+              }}
             >
+              {index === 0 && (
+                <DataPulseSquares
+                  frame={frame}
+                  color="#ffe19a"
+                  size={7}
+                  count={3}
+                  startFrame={42}
+                />
+              )}
               {line}
             </div>
           </div>

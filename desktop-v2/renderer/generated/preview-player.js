@@ -14981,8 +14981,57 @@ Check that all your Remotion packages are on the same version. If your dependenc
     }) });
   };
 
-  // src/remotion/text-animations/presets/BroadcastSplitText.tsx
+  // src/remotion/text-animations/DataPulseSquares.tsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime());
+  var DataPulseSquares = ({
+    frame,
+    color = "#ffe19a",
+    size = 7,
+    count = 3,
+    startFrame = 38
+  }) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          top: -18,
+          left: 0,
+          display: "flex",
+          gap: 5,
+          pointerEvents: "none"
+        },
+        children: Array.from({ length: count }).map((_, index) => {
+          const local = Math.max(0, frame - startFrame - index * 6);
+          const enterOpacity = interpolate(local, [0, 10], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp"
+          });
+          const pulse = 1 + Math.sin(local / 10) * 0.18;
+          const opacityPulse = 0.55 + Math.sin(local / 10) * 0.35;
+          return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+            "span",
+            {
+              style: {
+                width: size,
+                height: size,
+                display: "block",
+                borderRadius: 2,
+                backgroundColor: color,
+                opacity: enterOpacity * opacityPulse,
+                transform: `scale(${pulse})`,
+                boxShadow: `0 0 ${size * 2.2}px ${color}`
+              }
+            },
+            index
+          );
+        })
+      }
+    );
+  };
+
+  // src/remotion/text-animations/presets/BroadcastSplitText.tsx
+  var import_jsx_runtime9 = __toESM(require_jsx_runtime());
   var BroadcastSplitText = ({
     text,
     frame,
@@ -14992,7 +15041,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   }) => {
     const lines = splitLines(text);
     const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
       const local = Math.max(0, frame - index * 9);
       const y = interpolate(local, [0, 24], [110, 0], {
         extrapolateLeft: "clamp",
@@ -15002,7 +15051,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp"
       });
-      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+      return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
         "div",
         {
           style: {
@@ -15010,10 +15059,11 @@ Check that all your Remotion packages are on the same version. If your dependenc
             opacity,
             height: fontSize * 1.75
           },
-          children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
             "div",
             {
               style: {
+                position: "relative",
                 transform: `translateY(${y}%)`,
                 background: index === 0 ? "rgba(0,0,0,0.68)" : "rgba(0,45,130,0.72)",
                 color: colors.color,
@@ -15027,7 +15077,19 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 direction: "rtl",
                 letterSpacing: 0
               },
-              children: line
+              children: [
+                index === 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                  DataPulseSquares,
+                  {
+                    frame,
+                    color: "#ffe19a",
+                    size: 7,
+                    count: 3,
+                    startFrame: 42
+                  }
+                ),
+                line
+              ]
             }
           )
         },
@@ -15037,17 +15099,62 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/NumberHeroText.tsx
-  var import_jsx_runtime9 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime10 = __toESM(require_jsx_runtime());
+  function normalizeDigit(char) {
+    const code = char.charCodeAt(0);
+    if (code >= 1632 && code <= 1641)
+      return String(code - 1632);
+    if (code >= 1776 && code <= 1785)
+      return String(code - 1776);
+    return char;
+  }
+  function getNumberParts(valueText) {
+    const normalized = Array.from(valueText).map(normalizeDigit).join("");
+    const match = normalized.match(/\d+(?:[.,]\d+)?/);
+    const hasPercent = valueText.includes("%") || valueText.includes("\u066A");
+    if (!match) {
+      return {
+        target: null,
+        decimals: 0,
+        unit: hasPercent ? "%" : "",
+        fallback: valueText
+      };
+    }
+    const numericText = match[0].replace(",", ".");
+    const decimalPart = numericText.split(".")[1] ?? "";
+    const extraUnit = normalized.replace(match[0], "").replace(/[.,\s]/g, "").replace(/٪/g, "%");
+    return {
+      target: Number(numericText),
+      decimals: decimalPart.length,
+      unit: hasPercent ? "%" : extraUnit,
+      fallback: valueText
+    };
+  }
+  function splitDescription(description) {
+    const words = description.trim().split(/\s+/).filter(Boolean);
+    if (words.length <= 3)
+      return description ? [description] : [];
+    const middle = Math.min(words.length - 1, Math.ceil(words.length * 0.65));
+    return [
+      words.slice(0, middle).join(" "),
+      words.slice(middle).join(" ")
+    ].filter(Boolean);
+  }
   var NumberHeroText = ({
     text,
     frame,
-    bottomOffset,
-    fontSize,
-    textPreset
+    fontSize
   }) => {
     const { valueText, description } = extractNumberHero(text);
-    const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-    const numberScale = interpolate(frame, [0, 18, 28], [0.55, 1.14, 1], {
+    const { target, decimals, unit, fallback } = getNumberParts(valueText);
+    const descriptionLines = splitDescription(description);
+    const countProgress = interpolate(frame, [0, 48], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const easedCountProgress = 1 - Math.pow(1 - countProgress, 3);
+    const displayNumber = target === null ? fallback : decimals > 0 ? (target * easedCountProgress).toFixed(decimals) : String(Math.round(target * easedCountProgress));
+    const numberScale = interpolate(frame, [0, 18, 34], [0.62, 1.12, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
@@ -15055,70 +15162,123 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    const descY = interpolate(frame, [22, 42], [24, 0], {
+    const unitIn = interpolate(frame, [10, 24], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    const descOpacity = interpolate(frame, [22, 38], [0, 1], {
+    const unitPulseGate = interpolate(frame, [44, 58], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+    const unitPulse = 1 + Math.sin(Math.max(0, frame - 48) / 8) * 0.18 * unitPulseGate;
+    const descY = interpolate(frame, [30, 52], [28, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const descOpacity = interpolate(frame, [30, 48], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
       "div",
       {
         style: {
           position: "absolute",
-          bottom: bottomOffset,
-          right: 180,
-          maxWidth: 900,
-          textAlign: "right",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
           direction: "rtl",
-          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`,
+          pointerEvents: "none"
         },
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-            "div",
-            {
-              style: {
-                display: "inline-block",
-                fontSize: fontSize * 1.95,
-                fontWeight: 1e3,
-                color: "#ffe19a",
-                lineHeight: 1,
-                opacity: numberOpacity,
-                transform: `scale(${numberScale})`,
-                transformOrigin: "right center",
-                textShadow: "0 0 36px rgba(255,225,154,0.5)"
-              },
-              children: valueText
-            }
-          ),
-          description ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-            "div",
-            {
-              style: {
-                marginTop: 12,
-                background: colors.bg,
-                color: colors.color,
-                border: `1px solid ${colors.border}`,
-                padding: `${Math.round(fontSize * 0.16)}px ${Math.round(fontSize * 0.45)}px`,
-                fontSize: fontSize * 0.82,
-                fontWeight: 900,
-                lineHeight: 1.4,
-                opacity: descOpacity,
-                transform: `translateY(${descY}px)`,
-                boxShadow: "0 12px 34px rgba(0,0,0,0.45)"
-              },
-              children: description
-            }
-          ) : null
-        ]
+        children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+          "div",
+          {
+            style: {
+              width: "min(1080px, 82%)",
+              transform: "translateY(18px)"
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+                "div",
+                {
+                  style: {
+                    display: "inline-flex",
+                    alignItems: "baseline",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    direction: "ltr",
+                    gap: Math.max(8, fontSize * 0.16),
+                    opacity: numberOpacity,
+                    transform: `scale(${numberScale})`,
+                    transformOrigin: "center center",
+                    filter: `drop-shadow(0 0 34px rgba(255,225,154,0.48)) drop-shadow(0 14px 28px rgba(0,0,0,0.62))`
+                  },
+                  children: [
+                    unit ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+                      "span",
+                      {
+                        style: {
+                          display: "inline-block",
+                          color: "#ffffff",
+                          fontSize: fontSize * 1.22,
+                          fontWeight: 1e3,
+                          lineHeight: 1,
+                          opacity: unitIn,
+                          transform: `translateY(-${fontSize * 0.1}px) scale(${unitIn * unitPulse})`,
+                          transformOrigin: "center center",
+                          textShadow: "0 8px 28px rgba(0,0,0,0.72)"
+                        },
+                        children: unit
+                      }
+                    ) : null,
+                    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+                      "span",
+                      {
+                        style: {
+                          display: "inline-block",
+                          color: "#ffe19a",
+                          fontSize: fontSize * 2.45,
+                          fontWeight: 1e3,
+                          lineHeight: 0.92,
+                          letterSpacing: 0,
+                          minWidth: `${Math.max(2, displayNumber.length)}ch`,
+                          textAlign: "left"
+                        },
+                        children: displayNumber
+                      }
+                    )
+                  ]
+                }
+              ),
+              descriptionLines.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+                "div",
+                {
+                  style: {
+                    marginTop: Math.max(12, fontSize * 0.22),
+                    color: "#ffffff",
+                    fontSize: fontSize * 0.92,
+                    fontWeight: 1e3,
+                    lineHeight: 1.18,
+                    opacity: descOpacity,
+                    transform: `translateY(${descY}px)`,
+                    textShadow: "0 10px 30px rgba(0,0,0,0.78)",
+                    whiteSpace: "normal"
+                  },
+                  children: descriptionLines.map((line, index) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { style: { display: "block" }, children: line }, `${line}-${index}`))
+                }
+              ) : null
+            ]
+          }
+        )
       }
     );
   };
 
   // src/remotion/text-animations/presets/LayeredTitleText.tsx
-  var import_jsx_runtime10 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime11 = __toESM(require_jsx_runtime());
   var LayeredTitleText = ({
     text,
     frame,
@@ -15151,7 +15311,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateRight: "clamp"
     });
     const sidePulse = 1 + Math.sin(Math.max(0, frame - 60) / 18) * 0.06;
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
       "div",
       {
         style: {
@@ -15164,7 +15324,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "div",
             {
               style: {
@@ -15180,7 +15340,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "div",
             {
               style: {
@@ -15198,7 +15358,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               children: label3
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginTop: 12, overflow: "hidden", width: "max-content", maxWidth: 1e3 }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginTop: 12, overflow: "hidden", width: "max-content", maxWidth: 1e3 }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "div",
             {
               style: {
@@ -15212,7 +15372,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               children: title
             }
           ) }),
-          description ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          description ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "div",
             {
               style: {
@@ -15233,56 +15393,98 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/MorphCompareText.tsx
-  var import_jsx_runtime11 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime12 = __toESM(require_jsx_runtime());
   var MorphCompareText = ({
     text,
     frame,
-    bottomOffset,
     fontSize
   }) => {
-    const words = parseMorphWords(text);
+    const lines = splitLines(text);
+    const wordSource = lines[0] || text;
+    const words = parseMorphWords(wordSource);
     const safeWords = words.length > 0 ? words : ["\u0627\u0644\u0641\u0642\u0631", "\u0627\u0644\u063A\u0644\u0627\u0621"];
-    const cycleFrames = 78;
+    const subline = lines[1] || "\u0643\u0644\u0645\u0627\u062A \u062A\u062A\u062D\u0648\u0644 \u062F\u0627\u062E\u0644 \u0646\u0641\u0633 \u0627\u0644\u0645\u0648\u0636\u0639";
+    const cycleFrames = 84;
     const index = Math.floor(frame / cycleFrames) % safeWords.length;
     const cycleFrame = frame % cycleFrames;
     const word = safeWords[index];
-    const opacity = interpolate(cycleFrame, [0, 10, 52, 70], [0, 1, 1, 0], {
+    const opacity = interpolate(cycleFrame, [0, 25, 35, 50, 60, 84], [1, 1, 0, 0, 1, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    const blur = interpolate(cycleFrame, [0, 12, 52, 70], [8, 0, 0, 8], {
+    const blur = interpolate(cycleFrame, [0, 25, 35, 50, 60, 84], [0, 0, 8, 8, 0, 0], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    const y = interpolate(cycleFrame, [0, 12, 52, 70], [18, 0, 0, -18], {
+    const y = interpolate(cycleFrame, [0, 25, 35, 50, 60, 84], [0, 0, -14, 14, 0, 0], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+    const subOpacity = interpolate(frame, [10, 25], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const subY = interpolate(frame, [10, 25], [18, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
       "div",
       {
         style: {
           position: "absolute",
-          bottom: bottomOffset,
-          right: 180,
-          minWidth: 500,
-          textAlign: "right",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
           direction: "rtl",
-          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
+          fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`,
+          pointerEvents: "none"
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
           "div",
           {
             style: {
-              fontSize: fontSize * 1.45,
-              color: "#ffe19a",
-              fontWeight: 1e3,
-              opacity,
-              filter: `blur(${blur}px)`,
-              transform: `translateY(${y}px)`,
-              textShadow: "0 0 34px rgba(255,225,154,0.45)"
+              width: "min(940px, 82%)",
+              transform: "translateY(10px)"
             },
-            children: word
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                "span",
+                {
+                  style: {
+                    display: "block",
+                    fontSize: fontSize * 1.36,
+                    color: "#ffe19a",
+                    fontWeight: 1e3,
+                    lineHeight: 1.05,
+                    opacity,
+                    filter: `blur(${blur}px)`,
+                    transform: `translateY(${y}px)`,
+                    textShadow: "0 0 34px rgba(255,225,154,0.48), 0 14px 28px rgba(0,0,0,0.64)"
+                  },
+                  children: word
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                "span",
+                {
+                  style: {
+                    display: "block",
+                    marginTop: Math.max(10, fontSize * 0.18),
+                    fontSize: fontSize * 0.56,
+                    color: "#e5e7eb",
+                    fontWeight: 850,
+                    lineHeight: 1.35,
+                    opacity: subOpacity,
+                    transform: `translateY(${subY}px)`,
+                    textShadow: "0 8px 22px rgba(0,0,0,0.65)"
+                  },
+                  children: subline
+                }
+              )
+            ]
           }
         )
       }
@@ -15290,7 +15492,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/ImpactShockText.tsx
-  var import_jsx_runtime12 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime13 = __toESM(require_jsx_runtime());
   var ImpactShockText = ({
     text,
     frame,
@@ -15317,7 +15519,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
       "div",
       {
         style: {
@@ -15327,7 +15529,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           transformOrigin: "right center"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             "div",
             {
               style: {
@@ -15343,7 +15545,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          lines.map((line, index) => /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          lines.map((line, index) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             "div",
             {
               style: {
@@ -15365,7 +15567,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/WordByWordText.tsx
-  var import_jsx_runtime13 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime14 = __toESM(require_jsx_runtime());
   var WordByWordText = ({
     text,
     frame,
@@ -15375,7 +15577,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   }) => {
     const words = splitWords(text.replace(/\+\+/g, " "));
     const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-    return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
       "div",
       {
         style: getLineStyle({
@@ -15398,7 +15600,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp"
           });
-          return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
             "span",
             {
               style: {
@@ -15418,7 +15620,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/TimelineMarkerText.tsx
-  var import_jsx_runtime14 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime15 = __toESM(require_jsx_runtime());
   var TimelineMarkerText = ({
     text,
     frame,
@@ -15443,7 +15645,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         style: {
@@ -15455,7 +15657,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "div",
             {
               style: {
@@ -15469,7 +15671,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "div",
             {
               style: {
@@ -15485,8 +15687,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { style: { opacity: contentOpacity, transform: `translateX(${contentX}px)` }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { style: { opacity: contentOpacity, transform: `translateX(${contentX}px)` }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               "div",
               {
                 style: {
@@ -15501,7 +15703,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 children: period
               }
             ),
-            description ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+            description ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               "div",
               {
                 style: {
@@ -15523,7 +15725,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/CinematicRevealText.tsx
-  var import_jsx_runtime15 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime16 = __toESM(require_jsx_runtime());
   var CinematicRevealText = ({
     text,
     frame,
@@ -15533,7 +15735,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   }) => {
     const lines = splitLines(text);
     const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-    return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
       const local = Math.max(0, frame - index * 9);
       const reveal = interpolate(local, [0, 30], [0, 1], {
         extrapolateLeft: "clamp",
@@ -15547,7 +15749,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp"
       });
-      return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+      return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
         "div",
         {
           style: {
@@ -15555,16 +15757,31 @@ Check that all your Remotion packages are on the same version. If your dependenc
             transform: `translateX(${x}px)`,
             clipPath: `inset(0 ${100 - reveal * 100}% 0 0)`
           },
-          children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+          children: /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
             "div",
             {
-              style: getLineStyle({
-                bg: index === 0 ? colors.bg : "linear-gradient(90deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24))",
-                color: colors.color,
-                border: colors.border,
-                fontSize
-              }),
-              children: line
+              style: {
+                position: "relative",
+                ...getLineStyle({
+                  bg: index === 0 ? colors.bg : "linear-gradient(90deg, rgba(0,0,0,0.76), rgba(0,0,0,0.24))",
+                  color: colors.color,
+                  border: colors.border,
+                  fontSize
+                })
+              },
+              children: [
+                index === 0 && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+                  DataPulseSquares,
+                  {
+                    frame,
+                    color: "#ffe19a",
+                    size: 7,
+                    count: 3,
+                    startFrame: 42
+                  }
+                ),
+                line
+              ]
             }
           )
         },
@@ -15574,7 +15791,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/SplitLinesStaggerText.tsx
-  var import_jsx_runtime16 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime17 = __toESM(require_jsx_runtime());
   var SplitLinesStaggerText = ({
     text,
     frame,
@@ -15584,7 +15801,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   }) => {
     const lines = splitLines(text);
     const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-    return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
       const local = Math.max(0, frame - index * 10);
       const direction = index % 2 === 0 ? 1 : -1;
       const x = interpolate(local, [0, 28], [direction * 90, 0], {
@@ -15595,7 +15812,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp"
       });
-      return /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { style: { opacity, transform: `translateX(${x}px)` }, children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+      return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { style: { opacity, transform: `translateX(${x}px)` }, children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
         "div",
         {
           style: getLineStyle({
@@ -15611,7 +15828,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/HighlightSweepText.tsx
-  var import_jsx_runtime17 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime18 = __toESM(require_jsx_runtime());
   var HighlightSweepText = ({
     text,
     frame,
@@ -15621,7 +15838,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   }) => {
     const lines = splitLines(text);
     const colors = TEXT_PRESETS[textPreset] ?? TEXT_PRESETS.dark;
-    return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: getTextContainerStyle(bottomOffset), children: lines.map((line, index) => {
       const local = Math.max(0, frame - index * 7);
       const y = interpolate(local, [0, 18], [26, 0], {
         extrapolateLeft: "clamp",
@@ -15639,7 +15856,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp"
       });
-      return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+      return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
         "div",
         {
           style: {
@@ -15647,7 +15864,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
             opacity,
             transform: `translateY(${y}px)`
           },
-          children: /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
+          children: /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
             "div",
             {
               style: getLineStyle({
@@ -15658,7 +15875,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }),
               children: [
                 line,
-                /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
                   "div",
                   {
                     style: {
@@ -15682,7 +15899,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/presets/KineticKeywordText.tsx
-  var import_jsx_runtime18 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime19 = __toESM(require_jsx_runtime());
   var KineticKeywordText = ({
     text,
     frame,
@@ -15711,7 +15928,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateRight: "clamp"
     });
     const glow = 0.45 + Math.sin(Math.max(0, frame - 45) / 14) * 0.2;
-    return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(
       "div",
       {
         style: {
@@ -15723,7 +15940,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           fontFamily: `'${FONT_FAMILY}', 'Segoe UI', Tahoma, Arial, sans-serif`
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(
             "div",
             {
               style: {
@@ -15737,11 +15954,11 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 textShadow: "0 14px 34px rgba(0,0,0,0.65)"
               },
               children: [
-                before ? /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { children: [
+                before ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("span", { children: [
                   before,
                   " "
                 ] }) : null,
-                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
                   "span",
                   {
                     style: {
@@ -15751,14 +15968,14 @@ Check that all your Remotion packages are on the same version. If your dependenc
                     children: keyword
                   }
                 ),
-                after ? /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { children: [
+                after ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("span", { children: [
                   " ",
                   after
                 ] }) : null
               ]
             }
           ),
-          subline ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+          subline ? /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
             "div",
             {
               style: {
@@ -15778,43 +15995,43 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/text-animations/TextAnimationRenderer.tsx
-  var import_jsx_runtime19 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime20 = __toESM(require_jsx_runtime());
   var TextAnimationRenderer = (props) => {
     const preset = props.textAnimationType ?? "motion-blur";
     const rendered = (() => {
       switch (preset) {
         case "typewriter":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(TypewriterText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(TypewriterText, { ...props });
         case "live-reveal-dot":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(LiveRevealDotText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(LiveRevealDotText, { ...props });
         case "broadcast-split":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(BroadcastSplitText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(BroadcastSplitText, { ...props });
         case "number-hero":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(NumberHeroText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(NumberHeroText, { ...props });
         case "layered-title":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(LayeredTitleText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(LayeredTitleText, { ...props });
         case "morph-compare":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MorphCompareText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(MorphCompareText, { ...props });
         case "impact-shock":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(ImpactShockText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(ImpactShockText, { ...props });
         case "word-by-word":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(WordByWordText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(WordByWordText, { ...props });
         case "timeline-marker":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(TimelineMarkerText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(TimelineMarkerText, { ...props });
         case "cinematic-reveal":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(CinematicRevealText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(CinematicRevealText, { ...props });
         case "split-lines-stagger":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(SplitLinesStaggerText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(SplitLinesStaggerText, { ...props });
         case "highlight-sweep":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(HighlightSweepText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(HighlightSweepText, { ...props });
         case "kinetic-keyword":
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(KineticKeywordText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(KineticKeywordText, { ...props });
         case "motion-blur":
         default:
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MotionBlurText, { ...props });
+          return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(MotionBlurText, { ...props });
       }
     })();
-    return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
       ParallaxDepth,
       {
         frame: props.frame,
@@ -15827,7 +16044,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/Slide.tsx
-  var import_jsx_runtime20 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime21 = __toESM(require_jsx_runtime());
   var FONT_FACE_CSS = `
   @font-face {
     font-family: '${FONT_FAMILY}';
@@ -15861,7 +16078,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
     });
     const vignetteOpacity = relativeFrame > 0 ? isTypewriter ? Math.min(1, relativeFrame / 10) : entryOpacity : 0;
     const gradientHeight = Math.max(20, Math.round(bottomOffset / 1080 * 100) + 12);
-    return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
       "div",
       {
         style: {
@@ -15900,7 +16117,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const transitionStyle = isFirst ? {} : getSlideContainerStyle(transitionType, frame, TRANSITION_FRAMES);
     const relativeFrame = Math.max(0, frame - (isFirst ? 0 : TRANSITION_FRAMES));
     const hasText = Boolean(slide.text);
-    return /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(
       AbsoluteFill,
       {
         style: {
@@ -15908,8 +16125,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
           ...transitionStyle
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("style", { children: FONT_FACE_CSS }),
-          /\.(mp4|mov|webm|mkv)$/i.test(slide.imageUrl) ? /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("style", { children: FONT_FACE_CSS }),
+          /\.(mp4|mov|webm|mkv)$/i.test(slide.imageUrl) ? /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
             Video,
             {
               src: slide.imageUrl,
@@ -15922,7 +16139,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 transformOrigin: "center center"
               }
             }
-          ) : /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+          ) : /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
             Img,
             {
               src: slide.imageUrl,
@@ -15935,8 +16152,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          hasText ? /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(import_jsx_runtime20.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+          hasText ? /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(import_jsx_runtime21.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
               SubtitleVignette,
               {
                 relativeFrame,
@@ -15944,7 +16161,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 isTypewriter: textAnimationType === "typewriter"
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
               TextAnimationRenderer,
               {
                 text: slide.text ?? "",
@@ -15958,7 +16175,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             )
           ] }) : null,
-          !isFirst && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+          !isFirst && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
             TransitionOverlay,
             {
               type: transitionType,
@@ -15972,18 +16189,18 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // src/remotion/VisualEffects.tsx
-  var import_jsx_runtime21 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime22 = __toESM(require_jsx_runtime());
   var VisualEffects = ({ effects, cinematicBarSize = 6 }) => {
     if (!effects || effects.length === 0)
       return null;
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(AbsoluteFill, { style: { pointerEvents: "none", zIndex: 10 }, children: [
-      effects.includes("dust") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(DustParticles, {}),
-      effects.includes("light-leak") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(LightLeaks, {}),
-      effects.includes("bokeh") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(BokehEffect, {}),
-      effects.includes("scanlines") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Scanlines, {}),
-      effects.includes("grain") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(FilmGrain, {}),
-      effects.includes("vignette") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Vignette, {}),
-      effects.includes("cinematic-bars") && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(CinematicBars, { barSize: cinematicBarSize })
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(AbsoluteFill, { style: { pointerEvents: "none", zIndex: 10 }, children: [
+      effects.includes("dust") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(DustParticles, {}),
+      effects.includes("light-leak") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(LightLeaks, {}),
+      effects.includes("bokeh") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(BokehEffect, {}),
+      effects.includes("scanlines") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Scanlines, {}),
+      effects.includes("grain") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(FilmGrain, {}),
+      effects.includes("vignette") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Vignette, {}),
+      effects.includes("cinematic-bars") && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(CinematicBars, { barSize: cinematicBarSize })
     ] });
   };
   var DustParticles = () => {
@@ -16002,7 +16219,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       const isGolden = i % 4 === 0;
       return { x, y, size, opacity, isGolden };
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: particles.map((p, i) => /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: particles.map((p, i) => /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
       "circle",
       {
         cx: p.x,
@@ -16022,20 +16239,20 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const x2 = interpolate(Math.sin(frame * 0.014 + 2), [-1, 1], [1600, 2e3]);
     const y2 = interpolate(Math.cos(frame * 0.011 + 1), [-1, 1], [700, 1e3]);
     const op2 = interpolate(Math.sin(frame * 0.016 + 1), [-1, 1], [0.05, 0.18]);
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("defs", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("radialGradient", { id: "lg1", cx: "50%", cy: "50%", r: "50%", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "0%", stopColor: "#ff9900", stopOpacity: "1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "60%", stopColor: "#ff5500", stopOpacity: "0.4" }),
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "100%", stopColor: "#ff3300", stopOpacity: "0" })
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("defs", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("radialGradient", { id: "lg1", cx: "50%", cy: "50%", r: "50%", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("stop", { offset: "0%", stopColor: "#ff9900", stopOpacity: "1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("stop", { offset: "60%", stopColor: "#ff5500", stopOpacity: "0.4" }),
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("stop", { offset: "100%", stopColor: "#ff3300", stopOpacity: "0" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("radialGradient", { id: "lg2", cx: "50%", cy: "50%", r: "50%", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "0%", stopColor: "#ffcc44", stopOpacity: "1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "70%", stopColor: "#ff8800", stopOpacity: "0.3" }),
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("stop", { offset: "100%", stopColor: "#ff6600", stopOpacity: "0" })
+        /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("radialGradient", { id: "lg2", cx: "50%", cy: "50%", r: "50%", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("stop", { offset: "0%", stopColor: "#ffcc44", stopOpacity: "1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("stop", { offset: "70%", stopColor: "#ff8800", stopOpacity: "0.3" }),
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("stop", { offset: "100%", stopColor: "#ff6600", stopOpacity: "0" })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
         "ellipse",
         {
           cx: x1,
@@ -16047,7 +16264,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           style: { mixBlendMode: "screen" }
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
         "ellipse",
         {
           cx: x2,
@@ -16071,12 +16288,12 @@ Check that all your Remotion packages are on the same version. If your dependenc
       { baseX: 960, baseY: 500, r: 130, color: "rgba(255,240,180,0.10)", speed: 0.013, phase: 0.7 },
       { baseX: 400, baseY: 600, r: 170, color: "rgba(180,220,255,0.10)", speed: 0.01, phase: 1.8 }
     ];
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("defs", { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("filter", { id: "bokeh-blur", children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("feGaussianBlur", { stdDeviation: "28" }) }) }),
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { children: /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("svg", { width: "1920", height: "1080", style: { position: "absolute" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("defs", { children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("filter", { id: "bokeh-blur", children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("feGaussianBlur", { stdDeviation: "28" }) }) }),
       circles.map((c, i) => {
         const dx = Math.sin(frame * c.speed + c.phase) * 60;
         const dy = Math.cos(frame * c.speed + c.phase + 0.5) * 40;
-        return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
           "circle",
           {
             cx: c.baseX + dx,
@@ -16094,7 +16311,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   var Scanlines = () => {
     const frame = useCurrentFrame();
     const drift = frame * 0.5 % 10;
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { style: {
       backgroundImage: "linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.25) 50%)",
       backgroundSize: "100% 8px",
       backgroundPosition: `0px ${drift}px`,
@@ -16105,7 +16322,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   var FilmGrain = () => {
     const frame = useCurrentFrame();
     const offset = frame % 10 * 10;
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { style: { overflow: "hidden", mixBlendMode: "overlay", opacity: 0.15 }, children: /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { style: { overflow: "hidden", mixBlendMode: "overlay", opacity: 0.15 }, children: /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
       "svg",
       {
         width: "200%",
@@ -16117,31 +16334,31 @@ Check that all your Remotion packages are on the same version. If your dependenc
           transform: `translate(${offset}px, ${offset}px)`
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("filter", { id: "film-grain", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("feTurbulence", { type: "fractalNoise", baseFrequency: "0.65", numOctaves: "1", seed: "10" }),
-            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("feColorMatrix", { type: "saturate", values: "0" })
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("filter", { id: "film-grain", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("feTurbulence", { type: "fractalNoise", baseFrequency: "0.65", numOctaves: "1", seed: "10" }),
+            /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("feColorMatrix", { type: "saturate", values: "0" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("rect", { width: "100%", height: "100%", filter: "url(#film-grain)" })
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("rect", { width: "100%", height: "100%", filter: "url(#film-grain)" })
         ]
       }
     ) });
   };
   var Vignette = () => {
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(AbsoluteFill, { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { style: {
       background: "radial-gradient(circle, transparent 50%, rgba(0,0,0,0.85) 150%)",
       mixBlendMode: "multiply"
     } });
   };
   var CinematicBars = ({ barSize }) => {
     const heightStr = `${barSize}%`;
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(AbsoluteFill, { style: { display: "flex", flexDirection: "column", justifyContent: "space-between" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } }),
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } })
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(AbsoluteFill, { style: { display: "flex", flexDirection: "column", justifyContent: "space-between" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } }),
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { style: { width: "100%", height: heightStr, backgroundColor: "#000" } })
     ] });
   };
 
   // src/remotion/MainComposition.tsx
-  var import_jsx_runtime22 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime23 = __toESM(require_jsx_runtime());
   var MainComposition = ({
     slides,
     overlay,
@@ -16171,16 +16388,16 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const EP_FADE_FRAMES = Math.round(EP_FADE_SEC * fps);
     const epStartFrame = endPage && EP_FRAMES > 0 ? Math.max(0, slideEndFrame - EP_FADE_FRAMES) : slideEndFrame;
     const totalVideoFrames = endPage && EP_FRAMES > 0 ? slideEndFrame + EP_FRAMES - EP_FADE_FRAMES : slideEndFrame;
-    return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(AbsoluteFill, { style: { backgroundColor: "#000", direction: "ltr" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(AbsoluteFill, { style: { backgroundColor: "#000", direction: "ltr" }, children: [
       validSlides.map((slide, i) => {
         const startFrame = i * offsetFrames;
-        return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
           Sequence,
           {
             from: startFrame,
             durationInFrames: framesPerSlide,
             layout: "none",
-            children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+            children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
               Slide,
               {
                 slide,
@@ -16197,13 +16414,13 @@ Check that all your Remotion packages are on the same version. If your dependenc
           slide.id
         );
       }),
-      endPage && EP_FRAMES > 0 && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+      endPage && EP_FRAMES > 0 && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
         Sequence,
         {
           from: epStartFrame,
           durationInFrames: EP_FRAMES,
           layout: "none",
-          children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(EndPageFade, { src: endPage, fadeFrames: EP_FADE_FRAMES })
+          children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(EndPageFade, { src: endPage, fadeFrames: EP_FADE_FRAMES })
         }
       ),
       overlay && (() => {
@@ -16215,9 +16432,9 @@ Check that all your Remotion packages are on the same version. If your dependenc
           mixBlendMode: "screen",
           opacity: 0.85
         };
-        return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Sequence, { from: 0, durationInFrames: totalVideoFrames || durationInFrames, children: isImageOverlay ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Img, { src: overlay, style: overlayStyle }) : /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Video, { src: overlay, style: overlayStyle, loop: true, muted: true }) });
+        return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Sequence, { from: 0, durationInFrames: totalVideoFrames || durationInFrames, children: isImageOverlay ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Img, { src: overlay, style: overlayStyle }) : /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Video, { src: overlay, style: overlayStyle, loop: true, muted: true }) });
       })(),
-      music && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+      music && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
         Audio,
         {
           src: music,
@@ -16234,7 +16451,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           }
         }
       ),
-      voiceover && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+      voiceover && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
         Audio,
         {
           src: voiceover,
@@ -16250,7 +16467,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
           }
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(VisualEffects, { effects: effects ?? [], cinematicBarSize: cinematicBarSize ?? 6 })
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(VisualEffects, { effects: effects ?? [], cinematicBarSize: cinematicBarSize ?? 6 })
     ] });
   };
   var EndPageFade = ({ src, fadeFrames }) => {
@@ -16259,7 +16476,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp"
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(AbsoluteFill, { style: { backgroundColor: "#000", opacity }, children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(AbsoluteFill, { style: { backgroundColor: "#000", opacity }, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
       Video,
       {
         src,
@@ -16269,7 +16486,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   };
 
   // desktop-v2/preview/player-entry.tsx
-  var import_jsx_runtime23 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime24 = __toESM(require_jsx_runtime());
   var FPS = 30;
   var PLAYER_STYLE = {
     width: "100%",
@@ -16303,7 +16520,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
         }
       };
     }, [payload]);
-    return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
       Player,
       {
         ref: playerRef,
@@ -16330,7 +16547,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
     if (!previewRoot || !previewContainer) {
       return;
     }
-    previewRoot.render(/* @__PURE__ */ (0, import_jsx_runtime23.jsx)(PreviewApp, { payload: currentPayload }));
+    previewRoot.render(/* @__PURE__ */ (0, import_jsx_runtime24.jsx)(PreviewApp, { payload: currentPayload }));
   }
   window.DesktopRemotionPreview = {
     mount(container2) {

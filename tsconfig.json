@@ -24,5 +24,24 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist_electron",
+    "output",
+    "Outputs",
+    "OutputsTest",
+    "temp",
+    "Temp",
+    "TempTest",
+    "AssetsTest",
+    "temp_zip_extract",
+    "public/remotion-bundle",
+    "public/temp",
+    "desktop-v2/.runtime",
+    "desktop-v2/generated",
+    "src/remotion_text_backup",
+    "src/remotion_text_backup_final",
+    "remotion.config.ts"
+  ]
 }

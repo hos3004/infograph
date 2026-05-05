@@ -9,6 +9,22 @@ const TEXT_PRESET_STYLES = {
 
 const FPS = 25;
 const TRANSITION_OPTIONS = ['fade', 'light-leak', 'blur-wipe'];
+const TEXT_ANIMATION_OPTIONS = [
+  { value: 'live-reveal-dot', label: 'كشف سينمائي حي + نقطة' },
+  { value: 'broadcast-split', label: 'أسطر إخبارية متتابعة' },
+  { value: 'number-hero', label: 'عداد إحصائي متحرك' },
+  { value: 'layered-title', label: 'نظام عنوان طبقي' },
+  { value: 'morph-compare', label: 'مقارنة متغيرة' },
+  { value: 'impact-shock', label: 'صدمة خفيفة' },
+  { value: 'word-by-word', label: 'كلمة كلمة' },
+  { value: 'timeline-marker', label: 'مؤشر زمني' },
+  { value: 'cinematic-reveal', label: 'كشف سينمائي بسيط' },
+  { value: 'split-lines-stagger', label: 'أسطر متعاكسة' },
+  { value: 'highlight-sweep', label: 'لمعة عابرة' },
+  { value: 'kinetic-keyword', label: 'كلمة بطلة' },
+  { value: 'motion-blur', label: 'حركة ضبابية قديمة' },
+  { value: 'typewriter', label: 'كتابة Typewriter قديمة' },
+];
 
 const state = {
   assets: { overlays: [], music: [], endpage: [] },
@@ -22,7 +38,8 @@ const state = {
   endPageDisabledByUser: false,
   effects: ['dust', 'light-leak', 'bokeh'],
   textPreset: 'orange',
-  textAnimationType: 'motion-blur',
+  textAnimationType: 'live-reveal-dot',
+  parallaxEnabled: true,
   cinematicBarSize: 6,
   textFontSize: 65,
   textBottomOffset: 160,
@@ -80,6 +97,8 @@ const elements = {
   renderResult: document.getElementById('render-result'),
   barSizeInput: document.getElementById('bar-size-input'),
   barSizeValue: document.getElementById('bar-size-value'),
+  textAnimationButtons: document.getElementById('text-animation-buttons'),
+  parallaxCheckbox: document.getElementById('parallax-enabled-checkbox'),
   animationRadios: Array.from(document.querySelectorAll('.animation-radio')),
   effectCheckboxes: Array.from(document.querySelectorAll('.effect-checkbox')),
   previewStageShell: document.getElementById('preview-stage-shell'),
@@ -250,7 +269,30 @@ function updateRangeVisual(input) {
   input.style.setProperty('--range-fill', `${ratio}%`);
 }
 
+function renderTextAnimationButtons() {
+  const container = elements.textAnimationButtons;
+  if (!container || container.dataset.ready === 'true') {
+    return;
+  }
+
+  container.innerHTML = '';
+  TEXT_ANIMATION_OPTIONS.forEach((option) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'animation-preset-btn';
+    button.dataset.animationPreset = option.value;
+    button.setAttribute('role', 'radio');
+    button.setAttribute('aria-checked', 'false');
+    button.title = option.value;
+    button.textContent = option.label;
+    container.appendChild(button);
+  });
+  container.dataset.ready = 'true';
+}
+
 function syncTextSettingsUi() {
+  renderTextAnimationButtons();
+
   elements.bottomOffsetValue.textContent = `${state.textBottomOffset}px`;
   elements.fontSizeValue.textContent = `${state.textFontSize}px`;
   elements.bottomOffsetInput.value = String(state.textBottomOffset);
@@ -270,6 +312,16 @@ function syncTextSettingsUi() {
   }
   if (elements.animationRadios) {
     elements.animationRadios.forEach(r => { r.checked = r.value === state.textAnimationType; });
+  }
+  if (elements.textAnimationButtons) {
+    elements.textAnimationButtons.querySelectorAll('[data-animation-preset]').forEach((button) => {
+      const active = button.dataset.animationPreset === state.textAnimationType;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-checked', active ? 'true' : 'false');
+    });
+  }
+  if (elements.parallaxCheckbox) {
+    elements.parallaxCheckbox.checked = state.parallaxEnabled !== false;
   }
 }
 
@@ -387,6 +439,7 @@ function buildExactPreviewInputProps() {
     textFontSize: Number(state.textFontSize || 46),
     textPreset: state.textPreset,
     textAnimationType: state.textAnimationType || 'motion-blur',
+    parallaxEnabled: state.parallaxEnabled !== false,
     cinematicBarSize: Number(state.cinematicBarSize || 6),
     musicVolume: Number(state.musicVolume),
     voiceoverVolume: Number(state.voiceoverVolume),
@@ -1407,6 +1460,7 @@ function buildRenderPayload() {
     textFontSize: Number(state.textFontSize),
     textPreset: state.textPreset,
     textAnimationType: state.textAnimationType || 'motion-blur',
+    parallaxEnabled: state.parallaxEnabled !== false,
     cinematicBarSize: Number(state.cinematicBarSize || 6),
     turboMode: document.getElementById('turbo-render-checkbox')?.checked || false,
   };
@@ -1536,6 +1590,8 @@ function createConfetti() {
 
 async function bootstrap() {
   ensurePreviewShell();
+  renderTextAnimationButtons();
+  syncTextSettingsUi();
 
   const bootstrapPayload = await window.desktopApi.bootstrap();
   state.assets = bootstrapPayload.assets;
@@ -1708,9 +1764,30 @@ if (elements.animationRadios) {
     radio.addEventListener('change', (event) => {
       if (event.target.checked) {
         state.textAnimationType = event.target.value;
+        syncTextSettingsUi();
         renderPreviewFrame();
       }
     });
+  });
+}
+
+if (elements.textAnimationButtons) {
+  elements.textAnimationButtons.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-animation-preset]');
+    if (!button) {
+      return;
+    }
+    state.textAnimationType = button.dataset.animationPreset || 'motion-blur';
+    syncTextSettingsUi();
+    renderPreviewFrame();
+  });
+}
+
+if (elements.parallaxCheckbox) {
+  elements.parallaxCheckbox.addEventListener('change', (event) => {
+    state.parallaxEnabled = event.target.checked;
+    syncTextSettingsUi();
+    renderPreviewFrame();
   });
 }
 
