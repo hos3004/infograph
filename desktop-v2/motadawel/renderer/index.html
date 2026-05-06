@@ -121,6 +121,16 @@
     <header class="top-bar">
       <div class="logo-section">
         <img id="brand-logo" class="brand-logo-image" alt="متداول" style="height: 54px; object-fit: contain; margin-left: 0.5rem;" />
+        <div class="project-actions" aria-label="إدارة المشروع">
+          <button id="project-save-btn" class="project-icon-btn" type="button" title="حفظ المشروع" aria-label="حفظ المشروع">
+            <i data-lucide="save" style="width: 21px; height: 21px;"></i>
+            <span id="project-status-dot" class="project-status-dot" aria-hidden="true"></span>
+          </button>
+          <button id="project-open-btn" class="project-icon-btn" type="button" title="فتح مشروع" aria-label="فتح مشروع">
+            <i data-lucide="folder-open" style="width: 22px; height: 22px;"></i>
+          </button>
+          <span id="project-save-status" class="project-save-status">مشروع جديد</span>
+        </div>
         <span id="runtime-summary" style="display: none;">Loading...</span>
       </div>
       <div class="top-bar-btns app-nav-pills">

@@ -62,6 +62,11 @@ function ensurePlaceholderPng() {
 
 const { findAssetPath, listAssetsSnapshot, toFileUrl } = require('./shared/assets.cjs');
 const { createDesktopPaths, ensureDesktopDirs } = require('./shared/paths.cjs');
+const {
+  inferProjectConfigFromUrl,
+  saveProject,
+  openProject,
+} = require('./shared/project-store.cjs');
 
 // ─── Voiceover helpers (runs in main process, no HTTP server needed) ──────────
 
@@ -216,6 +221,26 @@ function createPaths() {
 }
 
 const desktopPaths = createPaths();
+
+function getAppVersion() {
+  try {
+    const packageJsonPath = path.join(desktopPaths.repoRoot, 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    return packageJson.version || '1.0.0';
+  } catch {
+    return '1.0.0';
+  }
+}
+
+function getProjectConfigForEvent(event, payload = null) {
+  const senderUrl = event.senderFrame?.url || event.sender?.getURL?.() || '';
+  const config = inferProjectConfigFromUrl(senderUrl);
+  const payloadType = payload?.projectType || payload?.project?.projectType;
+  if (payloadType && payloadType !== config.projectType) {
+    throw new Error(`هذا الملف ليس مشروع ${config.displayName} صالحًا`);
+  }
+  return config;
+}
 
 function readFileAsDataUrl(filePath) {
   try {
@@ -418,6 +443,7 @@ function buildBootstrapPayload() {
     appHome: desktopPaths.appHome,
     outputDir: desktopPaths.outputDir,
     assetsDir: desktopPaths.assetsDir,
+    appVersion: getAppVersion(),
     logoDataUrl: readFileAsDataUrl(logoPath),
     fontDataUrl: readFileAsDataUrl(fontPath),
     assets: listAssetsSnapshot(desktopPaths),
@@ -426,6 +452,53 @@ function buildBootstrapPayload() {
 }
 
 ipcMain.handle('desktop:bootstrap', async () => buildBootstrapPayload());
+
+ipcMain.handle('project:save', async (event, payload) => {
+  try {
+    const config = getProjectConfigForEvent(event, payload);
+    return await saveProject({
+      dialog,
+      browserWindow: BrowserWindow.fromWebContents(event.sender),
+      payload,
+      config,
+      appVersion: getAppVersion(),
+      forceSaveAs: false,
+    });
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle('project:saveAs', async (event, payload) => {
+  try {
+    const config = getProjectConfigForEvent(event, payload);
+    return await saveProject({
+      dialog,
+      browserWindow: BrowserWindow.fromWebContents(event.sender),
+      payload,
+      config,
+      appVersion: getAppVersion(),
+      forceSaveAs: true,
+    });
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle('project:open', async (event, context) => {
+  try {
+    const config = getProjectConfigForEvent(event, context?.project || null);
+    return await openProject({
+      dialog,
+      browserWindow: BrowserWindow.fromWebContents(event.sender),
+      context,
+      config,
+      appVersion: getAppVersion(),
+    });
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+});
 
 ipcMain.handle('desktop:refresh-assets', async () => listAssetsSnapshot(desktopPaths));
 
@@ -447,6 +520,24 @@ ipcMain.handle('desktop:pick-slides', async () => {
     text: '',
     isMuted: true,
   }));
+});
+
+ipcMain.handle('desktop:pick-slide-image', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select replacement slide image',
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+    properties: ['openFile'],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  const filePath = result.filePaths[0];
+  return {
+    imagePath: filePath,
+    fileUrl: toFileUrl(filePath),
+  };
 });
 
 ipcMain.handle('desktop:pick-main-video', async () => {

@@ -1,4 +1,6 @@
 const FPS = 25;
+const PROJECT_TYPE = 'motadawel';
+const PROJECT_AUTOSAVE_DELAY_MS = 1600;
 const TEXT_PRESET_VALUES = ['dark', 'gold', 'blue', 'red', 'orange'];
 
 const state = {
@@ -6,6 +8,16 @@ const state = {
     motadawel_intros: [],
     motadawel_outros: [],
     frem_mutadawel: [],
+  },
+  appVersion: '1.0.0',
+  project: {
+    currentProjectPath: '',
+    projectName: 'Motadawel Project',
+    isDirty: false,
+    isSaving: false,
+    lastSavedAt: null,
+    autosaveEnabled: true,
+    createdAt: null,
   },
   intro: '',
   introDurationMs: 0,
@@ -35,6 +47,9 @@ const state = {
 
 const elements = {
   brandLogo: document.getElementById('brand-logo'),
+  projectSaveBtn: document.getElementById('project-save-btn'),
+  projectOpenBtn: document.getElementById('project-open-btn'),
+  projectSaveStatus: document.getElementById('project-save-status'),
   runtimeSummary: document.getElementById('runtime-summary'),
   refreshAssetsBtn: document.getElementById('refresh-assets-btn'),
   openOutputBtn: document.getElementById('open-output-btn'),
@@ -82,7 +97,9 @@ const elements = {
   previewContainer: document.getElementById('preview-stage'),
 };
 
-
+let autosaveTimerId = null;
+let isApplyingProjectData = false;
+let projectChangeRevision = 0;
 
 const debugLogEl = document.getElementById('motadawel-debug-log');
 function debugSerialize(value) {
@@ -126,6 +143,249 @@ function updateRangeVisual(inputEl) {
   const val = parseFloat(inputEl.value) || 0;
   const percent = ((val - min) / (max - min)) * 100;
   inputEl.style.setProperty('--range-fill', `${percent}%`);
+}
+
+function getActiveTabId() {
+  return document.querySelector('.tab-btn.active')?.dataset.target || 'tab-content-project';
+}
+
+function activateTab(tabId) {
+  if (!tabId) return;
+  const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+  const targetTab = tabs.find((tab) => tab.dataset.target === tabId);
+  if (!targetTab) return;
+
+  tabs.forEach((tab) => tab.classList.toggle('active', tab === targetTab));
+  const displayModes = {
+    'tab-content-project': 'flex',
+    'tab-content-text': 'block',
+    'tab-content-audio': 'block',
+  };
+  Object.entries(displayModes).forEach(([id, display]) => {
+    const panel = document.getElementById(id);
+    if (panel) panel.style.display = id === tabId ? display : 'none';
+  });
+}
+
+function updateProjectStatusUi(statusText) {
+  if (!elements.projectSaveBtn || !elements.projectSaveStatus) return;
+
+  elements.projectSaveBtn.classList.toggle('is-dirty', state.project.isDirty && !state.project.isSaving);
+  elements.projectSaveBtn.classList.toggle('is-saving', state.project.isSaving);
+  elements.projectSaveBtn.disabled = state.project.isSaving;
+
+  if (statusText) {
+    elements.projectSaveStatus.textContent = statusText;
+    return;
+  }
+
+  if (state.project.isSaving) {
+    elements.projectSaveStatus.textContent = 'جارٍ الحفظ...';
+  } else if (state.project.isDirty) {
+    elements.projectSaveStatus.textContent = 'تغييرات غير محفوظة';
+  } else if (state.project.lastSavedAt) {
+    elements.projectSaveStatus.textContent = 'تم الحفظ';
+  } else {
+    elements.projectSaveStatus.textContent = 'مشروع جديد';
+  }
+}
+
+function scheduleAutosave() {
+  window.clearTimeout(autosaveTimerId);
+  if (!state.project.autosaveEnabled || !state.project.currentProjectPath || !state.project.isDirty) {
+    return;
+  }
+
+  autosaveTimerId = window.setTimeout(() => {
+    saveCurrentProject({ autosave: true });
+  }, PROJECT_AUTOSAVE_DELAY_MS);
+}
+
+function markProjectDirty() {
+  if (isApplyingProjectData) {
+    return;
+  }
+  projectChangeRevision += 1;
+  state.project.isDirty = true;
+  updateProjectStatusUi();
+  scheduleAutosave();
+}
+
+function buildMotadawelProjectData() {
+  return {
+    scene: {
+      intro: state.intro,
+      introDurationMs: state.introDurationMs,
+      introDurationFrames: state.introDurationFrames,
+      mainVideo: state.mainVideo,
+      mainVideoUrl: state.mainVideoUrl,
+      mainVideoDurationMs: state.mainVideoDurationMs,
+      mainVideoDurationFrames: state.mainVideoDurationFrames,
+      frame: state.frame,
+      outro: state.outro,
+      outroDurationMs: state.outroDurationMs,
+      outroDurationFrames: state.outroDurationFrames,
+    },
+    text: {
+      value: state.text,
+      bottomOffset: state.textBottomOffset,
+      fontSize: state.textFontSize,
+      preset: state.textPreset,
+      animationType: state.textAnimationType,
+      cinematicBarSize: state.cinematicBarSize,
+    },
+    videoTransform: {
+      scale: state.videoScale,
+      x: state.videoX,
+      y: state.videoY,
+    },
+    audio: {
+      bgMusic: state.bgMusic,
+      bgMusicVolume: state.bgMusicVolume,
+    },
+    appearance: {
+      effects: [...state.effects],
+    },
+    render: {
+      turboMode: document.getElementById('turbo-render-checkbox')?.checked || false,
+    },
+    ui: {
+      activeTab: getActiveTabId(),
+    },
+  };
+}
+
+function buildProjectPayload() {
+  return {
+    projectType: PROJECT_TYPE,
+    appVersion: state.appVersion,
+    currentProjectPath: state.project.currentProjectPath,
+    projectName: state.project.projectName,
+    createdAt: state.project.createdAt,
+    data: buildMotadawelProjectData(),
+  };
+}
+
+function applyProjectMeta(project, filePath) {
+  state.project.currentProjectPath = filePath || '';
+  state.project.projectName = project?.projectName || (filePath ? prettifyPath(filePath).replace(/\.mtp$/i, '') : 'Motadawel Project');
+  state.project.createdAt = project?.createdAt || state.project.createdAt;
+  state.project.lastSavedAt = project?.updatedAt || new Date().toISOString();
+  state.project.isDirty = false;
+}
+
+async function saveCurrentProject({ forceSaveAs = false, autosave = false } = {}) {
+  if (state.project.isSaving) return;
+
+  window.clearTimeout(autosaveTimerId);
+  state.project.isSaving = true;
+  updateProjectStatusUi('جارٍ الحفظ...');
+  let failed = false;
+
+  try {
+    const savingRevision = projectChangeRevision;
+    const payload = buildProjectPayload();
+    const result = forceSaveAs
+      ? await window.projectApi.saveProjectAs(payload)
+      : await window.projectApi.saveProject(payload);
+
+    if (!result?.success) {
+      throw new Error(result?.error || 'فشل الحفظ');
+    }
+    if (result.canceled) {
+      return;
+    }
+
+    applyProjectMeta(result.project, result.filePath);
+    if (projectChangeRevision !== savingRevision) {
+      state.project.isDirty = true;
+      scheduleAutosave();
+    }
+    updateProjectStatusUi('تم الحفظ');
+  } catch (err) {
+    failed = true;
+    if (!autosave) {
+      setStatus('خطأ', err?.message || 'فشل حفظ المشروع', true);
+    }
+    updateProjectStatusUi('فشل الحفظ');
+  } finally {
+    state.project.isSaving = false;
+    updateProjectStatusUi(failed ? 'فشل الحفظ' : undefined);
+  }
+}
+
+async function applyOpenedProject(project, filePath) {
+  const data = project.data || {};
+  const scene = data.scene || {};
+  const text = data.text || {};
+  const videoTransform = data.videoTransform || {};
+  const audio = data.audio || {};
+  const appearance = data.appearance || {};
+  const ui = data.ui || {};
+
+  isApplyingProjectData = true;
+  try {
+    state.intro = scene.intro || '';
+    state.introDurationMs = Number(scene.introDurationMs || 0);
+    state.introDurationFrames = Number(scene.introDurationFrames || 0);
+    state.mainVideo = scene.mainVideo || '';
+    state.mainVideoUrl = scene.mainVideoUrl || (state.mainVideo ? window.desktopApi.toFileUrl(state.mainVideo) : '');
+    state.mainVideoDurationMs = Number(scene.mainVideoDurationMs || 0);
+    state.mainVideoDurationFrames = Number(scene.mainVideoDurationFrames || 0);
+    state.frame = scene.frame || '';
+    state.outro = scene.outro || '';
+    state.outroDurationMs = Number(scene.outroDurationMs || 0);
+    state.outroDurationFrames = Number(scene.outroDurationFrames || 0);
+    state.text = typeof text.value === 'string' ? text.value : state.text;
+    state.textBottomOffset = Number(text.bottomOffset || state.textBottomOffset);
+    state.textFontSize = Number(text.fontSize || state.textFontSize);
+    state.textPreset = TEXT_PRESET_VALUES.includes(text.preset) ? text.preset : state.textPreset;
+    state.textAnimationType = text.animationType || state.textAnimationType;
+    state.cinematicBarSize = Number(text.cinematicBarSize || state.cinematicBarSize);
+    state.videoScale = Number(videoTransform.scale || state.videoScale);
+    state.videoX = Number(videoTransform.x || 0);
+    state.videoY = Number(videoTransform.y || 0);
+    state.bgMusic = audio.bgMusic || '';
+    state.bgMusicVolume = Number(audio.bgMusicVolume ?? state.bgMusicVolume);
+    state.effects = Array.isArray(appearance.effects) ? [...appearance.effects] : [];
+
+    const turboCheckbox = document.getElementById('turbo-render-checkbox');
+    if (turboCheckbox && data.render) {
+      turboCheckbox.checked = Boolean(data.render.turboMode);
+    }
+
+    applyProjectMeta(project, filePath);
+    syncUI();
+    await updateIntroDuration();
+    await updateOutroDuration();
+    syncUI();
+    await renderPreview();
+    activateTab(ui.activeTab || 'tab-content-project');
+    setStatus('المشروع', 'تم فتح المشروع بنجاح');
+  } finally {
+    isApplyingProjectData = false;
+    projectChangeRevision = 0;
+    state.project.isDirty = false;
+    updateProjectStatusUi();
+  }
+}
+
+async function openProjectFromDisk() {
+  const result = await window.projectApi.openProject({
+    isDirty: state.project.isDirty,
+    project: buildProjectPayload(),
+  });
+
+  if (!result?.success) {
+    setStatus('خطأ', result?.error || 'تعذر فتح المشروع', true);
+    updateProjectStatusUi('فشل الحفظ');
+    return;
+  }
+  if (result.canceled) {
+    return;
+  }
+
+  await applyOpenedProject(result.project, result.filePath);
 }
 
 function buildOption(value, text, isSelected = false) {
@@ -474,6 +734,38 @@ async function handleOutroChange(value) {
   await renderPreview();
 }
 
+function shouldIgnoreDirtyEvent(target) {
+  if (!target || typeof target.closest !== 'function') return false;
+  return Boolean(target.closest(
+    '#preview-seek, .preview-icon-btn, #preview-stage, #project-save-btn, #project-open-btn',
+  ));
+}
+
+document.addEventListener('input', (event) => {
+  if (!shouldIgnoreDirtyEvent(event.target)) {
+    markProjectDirty();
+  }
+}, true);
+
+document.addEventListener('change', (event) => {
+  if (!shouldIgnoreDirtyEvent(event.target)) {
+    markProjectDirty();
+  }
+}, true);
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('.tab-btn')) {
+    markProjectDirty();
+  }
+}, true);
+
+if (elements.projectSaveBtn) {
+  elements.projectSaveBtn.addEventListener('click', () => saveCurrentProject());
+}
+if (elements.projectOpenBtn) {
+  elements.projectOpenBtn.addEventListener('click', openProjectFromDisk);
+}
+
 elements.introSelect.addEventListener('change', async (e) => {
   await handleIntroChange(e.target.value);
 });
@@ -588,6 +880,7 @@ elements.textPresetButtons.forEach((button) => {
     state.textPreset = TEXT_PRESET_VALUES.includes(button.dataset.preset) ? button.dataset.preset : 'dark';
     setPresetUi();
     saveStateField('textPreset', state.textPreset);
+    markProjectDirty();
     await renderPreview();
   });
 });
@@ -606,6 +899,7 @@ elements.resetBtn.addEventListener('click', async () => {
   saveStateField('videoScale', 1);
   saveStateField('videoX', 0);
   saveStateField('videoY', 0);
+  markProjectDirty();
   syncUI();
   await renderPreview();
 });
@@ -631,6 +925,7 @@ elements.pickMainVideoBtn.addEventListener('click', async () => {
   }
 
   syncUI();
+  markProjectDirty();
   await renderPreview();
 });
 
@@ -840,6 +1135,7 @@ async function bootstrap() {
   debugLog('bootstrap start');
   const payload = await window.desktopApi.bootstrap();
   debugLog('bootstrap payload', { hasLogo: !!payload.logoDataUrl, hasFont: !!payload.fontDataUrl, assets: Object.fromEntries(Object.entries(payload.assets || {}).map(([k,v]) => [k, Array.isArray(v) ? v.length : 0])) });
+  state.appVersion = payload.appVersion || state.appVersion;
   state.assets = payload.assets;
   loadSavedState();
 
@@ -888,6 +1184,7 @@ async function bootstrap() {
   } else {
     debugLog('preview api unavailable at bootstrap');
   }
+  updateProjectStatusUi();
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
