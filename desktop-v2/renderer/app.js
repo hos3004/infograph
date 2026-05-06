@@ -2069,6 +2069,10 @@ async function handleGenerateContentSlides() {
   const count = slideCountInput ? Number(slideCountInput.value) || 10 : 10;
   const contentStyle = contentStyleSelect ? contentStyleSelect.value : 'informative';
   const textPreset = presetSelect ? presetSelect.value : 'automatic';
+  const maxWordsInput = document.getElementById('content-max-words');
+  const slideDurationInput = document.getElementById('content-slide-duration');
+  const maxWords = maxWordsInput ? Math.max(8, Math.min(30, Number(maxWordsInput.value) || 18)) : 18;
+  const slideDuration = slideDurationInput ? Math.max(4, Math.min(20, Number(slideDurationInput.value) || 8)) : 8;
 
   if (btn) { btn.disabled = true; btn.textContent = 'جاري التوليد...'; }
   if (status) status.textContent = 'جاري الاتصال بـ Gemini...';
@@ -2080,6 +2084,8 @@ async function handleGenerateContentSlides() {
       count,
       contentStyle,
       textPreset,
+      maxWords,
+      systemPrompt: getInspectorSystemPrompt(),
       apiKey: state.settings.geminiApiKey || '',
     });
 
@@ -2094,10 +2100,10 @@ async function handleGenerateContentSlides() {
     state.slides = result.slides;
     state.selectedSlideId = result.slides[0].id;
 
-    // Set slide duration to ~8 seconds to match voiceover script timing
-    state.slideDurationInSeconds = 8;
+    // Set slide duration from the content tab control
+    state.slideDurationInSeconds = slideDuration;
     const durationInput = document.getElementById('slide-duration-input');
-    if (durationInput) durationInput.value = 8;
+    if (durationInput) durationInput.value = slideDuration;
 
     // Apply text preset if not automatic
     if (textPreset && textPreset !== 'automatic') {
@@ -2149,7 +2155,7 @@ async function handleGenerateScriptVoiceover() {
       apiKey: state.settings.geminiApiKey || '',
       ttsModel: state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel,
       voiceName: state.settings.ttsVoice || DEFAULT_SETTINGS.ttsVoice,
-      stylePrompt: state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT,
+      stylePrompt: getInspectorTtsStyle(),
     });
 
     if (!result.success) throw new Error(result.error || 'فشل توليد الصوت');
@@ -2207,8 +2213,18 @@ if (copyScriptBtn) {
 function updatePromptInspector() {
   const ttsEl = document.getElementById('prompt-inspector-tts');
   const contentEl = document.getElementById('prompt-inspector-content');
-  if (ttsEl) ttsEl.textContent = state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT;
-  if (contentEl) contentEl.textContent = state.settings.contentSystemPrompt || DEFAULT_SYSTEM_PROMPT;
+  if (ttsEl && !ttsEl._userEdited) ttsEl.value = state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT;
+  if (contentEl && !contentEl._userEdited) contentEl.value = state.settings.contentSystemPrompt || DEFAULT_SYSTEM_PROMPT;
+}
+
+function getInspectorTtsStyle() {
+  const el = document.getElementById('prompt-inspector-tts');
+  return (el && el.value.trim()) ? el.value.trim() : (state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT);
+}
+
+function getInspectorSystemPrompt() {
+  const el = document.getElementById('prompt-inspector-content');
+  return (el && el.value.trim()) ? el.value.trim() : (state.settings.contentSystemPrompt || DEFAULT_SYSTEM_PROMPT);
 }
 
 // ─── Settings Modal ────────────────────────────────────────────────────────

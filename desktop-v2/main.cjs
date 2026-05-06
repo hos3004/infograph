@@ -602,6 +602,7 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
     slideCount = 10,
     contentStyle = 'وثائقي',
     textPreset = 'automatic',
+    maxWords: payloadMaxWords,
     apiKey: payloadKey,
     model: payloadModel,
     systemPrompt: payloadPrompt,
@@ -640,6 +641,7 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
   systemPrompt = systemPrompt || defaultSystemPrompt;
 
   const count = Math.min(30, Math.max(3, Number(slideCount) || 10));
+  const voMaxWords = Math.max(8, Math.min(30, Number(payloadMaxWords) || 18));
   const preset = textPreset === 'automatic' ? 'news-ledger' : textPreset;
 
   const userPrompt = `حوّل الموضوع التالي إلى ${count} شريحة إنفوجراف.
@@ -647,13 +649,13 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
 أسلوب المحتوى: ${contentStyle}
 نمط حركة النص المُفضَّل: ${preset}
 
-⚠️ قاعدة صارمة لـ voiceoverText: أقصى عدد مسموح هو 18 كلمة عربية فقط لكل شريحة — لا استثناءات.
-إذا كتبت أكثر من 18 كلمة فستُقطع تلقائياً. اكتب جملة واحدة قصيرة ومكثّفة فقط.
+⚠️ قاعدة صارمة لـ voiceoverText: أقصى عدد مسموح هو ${voMaxWords} كلمة عربية فقط لكل شريحة — لا استثناءات.
+إذا كتبت أكثر من ${voMaxWords} كلمة فستُقطع تلقائياً. اكتب جملة واحدة قصيرة ومكثّفة فقط.
 
 لكل شريحة أعد:
 - title: عنوان داخلي مختصر
 - text: نص الشاشة — أربعة أجزاء قصيرة مفصولة بـ "++" (كيكر ++ عنوان ++ شرح ++ خلاصة)
-- voiceoverText: جملة صوتية عربية واحدة، 15 إلى 18 كلمة كحد أقصى، تُعبّر عن جوهر الشريحة بأسلوب إذاعي طبيعي
+- voiceoverText: جملة صوتية عربية واحدة، من ${Math.max(8, voMaxWords - 3)} إلى ${voMaxWords} كلمة كحد أقصى، تُعبّر عن جوهر الشريحة بأسلوب إذاعي طبيعي
 - imagePrompt: وصف بالإنجليزية لصورة سينمائية واقعية بدون نص أو شعارات
 - visualHint: توجيه بصري عربي مختصر
 
@@ -663,7 +665,7 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
     {
       "title": "عنوان داخلي",
       "text": "كيكر ++ عنوان قوي ++ شرح مختصر ++ خلاصة",
-      "voiceoverText": "سكريبت صوتي عربي طبيعي من 15-18 كلمة لهذه الشريحة.",
+      "voiceoverText": "سكريبت صوتي عربي طبيعي من ${Math.max(8, voMaxWords - 3)}-${voMaxWords} كلمة لهذه الشريحة.",
       "imagePrompt": "English cinematic realistic visual prompt, no text, no logos",
       "visualHint": "توجيه بصري"
     }
@@ -702,16 +704,15 @@ ${topic}`;
     const placeholderPath = ensurePlaceholderPng();
     const placeholderUrl = toFileUrl(placeholderPath);
 
-    const VOICEOVER_MAX_WORDS = 18;
     const now = Date.now();
 
     // First pass: hard-truncate as safety net
-    const rawVoiceovers = slides.map((s) => truncateToWords(s.voiceoverText || '', VOICEOVER_MAX_WORDS));
+    const rawVoiceovers = slides.map((s) => truncateToWords(s.voiceoverText || '', voMaxWords));
 
     // Second pass: ask Gemini to intelligently rewrite any that were over the limit
     const reviewedVoiceovers = await reviewVoiceoverTexts(
       rawVoiceovers,
-      VOICEOVER_MAX_WORDS,
+      voMaxWords,
       { apiKey, model: contentModel },
     );
 

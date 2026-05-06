@@ -293,15 +293,27 @@
               </div>
 
               <div style="display:flex;gap:0.6rem;margin-bottom:0.65rem;">
-                <div style="width:90px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.82rem;font-weight:600;color:#374151;">عدد الشرائح</label>
+                <div style="width:80px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
+                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">عدد الشرائح</label>
                   <input id="content-slide-count" type="number" class="input-v2"
                     value="10" min="3" max="30"
                     style="text-align:center;font-size:0.9rem;padding:0.45rem;" />
                 </div>
+                <div style="width:80px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
+                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">ثواني/شريحة</label>
+                  <input id="content-slide-duration" type="number" class="input-v2"
+                    value="8" min="4" max="20"
+                    style="text-align:center;font-size:0.9rem;padding:0.45rem;" />
+                </div>
+                <div style="width:80px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
+                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">كلمات/شريحة</label>
+                  <input id="content-max-words" type="number" class="input-v2"
+                    value="18" min="8" max="30"
+                    style="text-align:center;font-size:0.9rem;padding:0.45rem;" />
+                </div>
                 <div style="flex:1;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.82rem;font-weight:600;color:#374151;">أسلوب المحتوى</label>
-                  <select id="content-style-select" class="input-v2" style="font-size:0.85rem;padding:0.45rem;">
+                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">أسلوب</label>
+                  <select id="content-style-select" class="input-v2" style="font-size:0.82rem;padding:0.45rem;">
                     <option value="وثائقي">وثائقي</option>
                     <option value="إخباري">إخباري</option>
                     <option value="قانوني">قانوني</option>
@@ -311,8 +323,8 @@
                   </select>
                 </div>
                 <div style="flex:1;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.82rem;font-weight:600;color:#374151;">نمط النص</label>
-                  <select id="content-preset-select" class="input-v2" style="font-size:0.85rem;padding:0.45rem;">
+                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">نمط النص</label>
+                  <select id="content-preset-select" class="input-v2" style="font-size:0.82rem;padding:0.45rem;">
                     <option value="automatic">automatic</option>
                     <option value="news-ledger">news-ledger</option>
                     <option value="layered-title">layered-title</option>
@@ -369,13 +381,13 @@
                   <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:0.25rem;letter-spacing:0.03em;">
                     🎙 تعليمات أسلوب الصوت (TTS Style)
                   </div>
-                  <div id="prompt-inspector-tts" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:ltr;text-align:left;line-height:1.6;white-space:pre-wrap;font-family:monospace;"></div>
+                  <textarea id="prompt-inspector-tts" rows="3" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:ltr;text-align:left;line-height:1.6;font-family:monospace;width:100%;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
                 <div>
                   <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:0.25rem;letter-spacing:0.03em;">
                     📋 البرومبت النظامي لتوليد المحتوى
                   </div>
-                  <div id="prompt-inspector-content" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:rtl;line-height:1.6;white-space:pre-wrap;max-height:120px;overflow-y:auto;"></div>
+                  <textarea id="prompt-inspector-content" rows="5" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:rtl;line-height:1.6;width:100%;box-sizing:border-box;resize:vertical;max-height:220px;overflow-y:auto;"></textarea>
                 </div>
               </div>
             </details>
