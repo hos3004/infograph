@@ -72,6 +72,55 @@ function truncateToWords(text, maxWords) {
   return words.slice(0, maxWords).join(' ').replace(/[،,]$/, '') + '.';
 }
 
+function wordCount(text) {
+  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+
+async function reviewVoiceoverTexts(texts, maxWords, { apiKey, model }) {
+  const overLimit = texts
+    .map((t, i) => ({ i, t }))
+    .filter(({ t }) => wordCount(t) > maxWords);
+
+  if (overLimit.length === 0) return texts;
+
+  const numbered = overLimit.map(({ t }, n) => `${n + 1}. "${t}"`).join('\n');
+  const prompt = `أعد صياغة كل نص صوتي أدناه في جملة عربية واحدة طبيعية لا تتجاوز ${maxWords} كلمة.
+حافظ على الفكرة الجوهرية فقط. لا تبدأ بـ "يهدف" أو "يقترح" — ابدأ بفعل أو اسم مباشر.
+
+النصوص للمراجعة:
+${numbered}
+
+أعد JSON فقط بهذا الشكل: {"results": ["النص 1 المُعاد", "النص 2 المُعاد", ...]}`;
+
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+  });
+
+  try {
+    const raw = await httpsPost(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      body,
+    );
+    const response = JSON.parse(raw);
+    const content = response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const parsed = JSON.parse(content);
+    const results = Array.isArray(parsed.results) ? parsed.results : [];
+
+    const output = [...texts];
+    overLimit.forEach(({ i }, n) => {
+      const reviewed = results[n];
+      if (reviewed && typeof reviewed === 'string') {
+        output[i] = truncateToWords(reviewed, maxWords);
+      }
+    });
+    return output;
+  } catch {
+    // If review fails, fall back to hard truncation (already applied)
+    return texts;
+  }
+}
+
 function buildRuleBasedNarration(slideText, maxWords = 18) {
   const cleanPart = (v) => (v || '').replace(/\s+/g, ' ').trim();
   const parts = slideText.split('++').map(cleanPart).filter(Boolean);
@@ -647,11 +696,22 @@ ${topic}`;
 
     const VOICEOVER_MAX_WORDS = 18;
     const now = Date.now();
+
+    // First pass: hard-truncate as safety net
+    const rawVoiceovers = slides.map((s) => truncateToWords(s.voiceoverText || '', VOICEOVER_MAX_WORDS));
+
+    // Second pass: ask Gemini to intelligently rewrite any that were over the limit
+    const reviewedVoiceovers = await reviewVoiceoverTexts(
+      rawVoiceovers,
+      VOICEOVER_MAX_WORDS,
+      { apiKey, model: contentModel },
+    );
+
     const mappedSlides = slides.map((s, i) => ({
       id: `generated-${now}-${i}`,
       title: s.title || '',
       text: s.text || '',
-      voiceoverText: truncateToWords(s.voiceoverText || '', VOICEOVER_MAX_WORDS),
+      voiceoverText: reviewedVoiceovers[i] || rawVoiceovers[i],
       imagePrompt: s.imagePrompt || '',
       visualHint: s.visualHint || '',
       imagePath: placeholderPath,
