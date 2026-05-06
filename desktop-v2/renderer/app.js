@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS = {
   geminiApiKey: '',
   ttsModel: 'gemini-2.5-flash-preview-tts',
   ttsVoice: 'Charon',
-  contentModel: 'gemini-2.0-flash',
+  contentModel: 'gemini-2.5-flash',
   contentSystemPrompt: DEFAULT_SYSTEM_PROMPT,
 };
 

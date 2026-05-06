@@ -566,7 +566,7 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
     return { success: false, error: 'مفتاح Gemini API مفقود. أضفه في إعدادات البرنامج (⚙️).' };
   }
 
-  contentModel = contentModel || 'gemini-2.0-flash';
+  contentModel = contentModel || 'gemini-2.5-flash';
   systemPrompt = systemPrompt || 'أنت محرر إنفوجراف تلفزيوني عربي محترف ومنتج تحريري. مهمتك تحويل موضوع عربي طويل إلى عدد محدد من شرائح الإنفوجراف. كل شريحة يجب أن تكون مناسبة للرسوم المتحركة وشاشات التلفزيون وأنماط حركة النص. اكتب بعربية مصقولة وموجزة ومنظمة بصرياً. أعد JSON فقط بدون أي نص توضيحي.';
 
   const count = Math.min(30, Math.max(3, Number(slideCount) || 10));
