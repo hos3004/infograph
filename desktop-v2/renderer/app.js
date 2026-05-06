@@ -8,6 +8,8 @@ const TEXT_PRESET_STYLES = {
 };
 
 const FPS = 25;
+const PROJECT_TYPE = 'infograph';
+const PROJECT_AUTOSAVE_DELAY_MS = 1600;
 const TRANSITION_OPTIONS = ['fade', 'light-leak', 'blur-wipe'];
 const TEXT_ANIMATION_OPTIONS = [
   { value: 'live-reveal-dot', label: 'كشف سينمائي حي + نقطة' },
@@ -52,6 +54,16 @@ const DEFAULT_SETTINGS = {
 
 const state = {
   assets: { overlays: [], music: [], endpage: [] },
+  appVersion: '1.0.0',
+  project: {
+    currentProjectPath: '',
+    projectName: 'Infograph Project',
+    isDirty: false,
+    isSaving: false,
+    lastSavedAt: null,
+    autosaveEnabled: true,
+    createdAt: null,
+  },
   placeholderPath: null,
   slides: [],
   overlay: '',
@@ -78,6 +90,7 @@ const state = {
   selectedSlideId: null,
   draggedSlideId: null,
   dragOverSlideId: null,
+  replacingSlideImageId: null,
   previewPlaying: false,
   previewMuted: false,
   previewPositionMs: 0,
@@ -88,6 +101,9 @@ const state = {
 
 const elements = {
   brandLogo: document.getElementById('brand-logo'),
+  projectSaveBtn: document.getElementById('project-save-btn'),
+  projectOpenBtn: document.getElementById('project-open-btn'),
+  projectSaveStatus: document.getElementById('project-save-status'),
   overlaySelect: document.getElementById('overlay-select'),
   musicSelect: document.getElementById('music-select'),
   musicVolumeInput: document.getElementById('music-volume-input'),
@@ -160,6 +176,10 @@ const previewRefs = {
   overlayImage: null,
 };
 
+let autosaveTimerId = null;
+let isApplyingProjectData = false;
+let projectChangeRevision = 0;
+
 function hasExactPreviewPlayer() {
   return Boolean(
     window.DesktopRemotionPreview &&
@@ -218,6 +238,267 @@ function setProgress(progress, message) {
   elements.progressFill.style.width = `${safeProgress * 100}%`;
   elements.progressPercent.textContent = `${Math.round(safeProgress * 100)}%`;
   elements.progressLabel.textContent = message || 'جاهز';
+}
+
+function getActiveTabId() {
+  return document.querySelector('.tab-btn.active')?.dataset.target || 'tab-content-slides';
+}
+
+function activateTab(tabId) {
+  if (!tabId) return;
+  const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+  const targetTab = tabs.find((tab) => tab.dataset.target === tabId);
+  if (!targetTab) return;
+
+  tabs.forEach((tab) => tab.classList.toggle('active', tab === targetTab));
+  const displayModes = {
+    'tab-content-slides': 'flex',
+    'tab-content-text': 'block',
+    'tab-content-audio': 'block',
+    'tab-content-generate': 'flex',
+  };
+  Object.entries(displayModes).forEach(([id, display]) => {
+    const panel = document.getElementById(id);
+    if (panel) panel.style.display = id === tabId ? display : 'none';
+  });
+}
+
+function updateProjectStatusUi(statusText) {
+  if (!elements.projectSaveBtn || !elements.projectSaveStatus) return;
+
+  elements.projectSaveBtn.classList.toggle('is-dirty', state.project.isDirty && !state.project.isSaving);
+  elements.projectSaveBtn.classList.toggle('is-saving', state.project.isSaving);
+  elements.projectSaveBtn.disabled = state.project.isSaving;
+
+  if (statusText) {
+    elements.projectSaveStatus.textContent = statusText;
+    return;
+  }
+
+  if (state.project.isSaving) {
+    elements.projectSaveStatus.textContent = 'جارٍ الحفظ...';
+  } else if (state.project.isDirty) {
+    elements.projectSaveStatus.textContent = 'تغييرات غير محفوظة';
+  } else if (state.project.lastSavedAt) {
+    elements.projectSaveStatus.textContent = 'تم الحفظ';
+  } else {
+    elements.projectSaveStatus.textContent = 'مشروع جديد';
+  }
+}
+
+function scheduleAutosave() {
+  window.clearTimeout(autosaveTimerId);
+  if (!state.project.autosaveEnabled || !state.project.currentProjectPath || !state.project.isDirty) {
+    return;
+  }
+
+  autosaveTimerId = window.setTimeout(() => {
+    saveCurrentProject({ autosave: true });
+  }, PROJECT_AUTOSAVE_DELAY_MS);
+}
+
+function markProjectDirty() {
+  if (isApplyingProjectData) {
+    return;
+  }
+  projectChangeRevision += 1;
+  state.project.isDirty = true;
+  updateProjectStatusUi();
+  scheduleAutosave();
+}
+
+function buildInfographProjectData() {
+  return {
+    slides: state.slides.map((slide) => ({ ...slide })),
+    media: {
+      overlay: state.overlay,
+      music: state.music,
+      voiceover: state.voiceover,
+      voiceoverDurationMs: state.voiceoverDurationMs,
+      voiceoverVolume: state.voiceoverVolume,
+      musicVolume: state.musicVolume,
+      endPage: state.endPage,
+      endPageDisabledByUser: state.endPageDisabledByUser,
+      endPageDurationFrames: state.endPageDurationFrames,
+      endPageDurationSource: state.endPageDurationSource,
+    },
+    appearance: {
+      effects: [...state.effects],
+      textPreset: state.textPreset,
+      textAnimationType: state.textAnimationType,
+      parallaxEnabled: state.parallaxEnabled,
+      cinematicBarSize: state.cinematicBarSize,
+      textFontSize: state.textFontSize,
+      textBottomOffset: state.textBottomOffset,
+      textHorizontalOffset: state.textHorizontalOffset,
+    },
+    timing: {
+      slideDurationInSeconds: state.slideDurationInSeconds,
+    },
+    render: {
+      turboMode: document.getElementById('turbo-render-checkbox')?.checked || false,
+    },
+    ui: {
+      selectedSlideId: state.selectedSlideId,
+      activeTab: getActiveTabId(),
+    },
+    settings: {
+      ttsModel: state.settings.ttsModel,
+      ttsVoice: state.settings.ttsVoice,
+      ttsStylePrompt: state.settings.ttsStylePrompt,
+      contentModel: state.settings.contentModel,
+      contentSystemPrompt: state.settings.contentSystemPrompt,
+    },
+  };
+}
+
+function buildProjectPayload() {
+  return {
+    projectType: PROJECT_TYPE,
+    appVersion: state.appVersion,
+    currentProjectPath: state.project.currentProjectPath,
+    projectName: state.project.projectName,
+    createdAt: state.project.createdAt,
+    data: buildInfographProjectData(),
+  };
+}
+
+function applyProjectMeta(project, filePath) {
+  state.project.currentProjectPath = filePath || '';
+  state.project.projectName = project?.projectName || (filePath ? prettifyPath(filePath).replace(/\.igp$/i, '') : 'Infograph Project');
+  state.project.createdAt = project?.createdAt || state.project.createdAt;
+  state.project.lastSavedAt = project?.updatedAt || new Date().toISOString();
+  state.project.isDirty = false;
+}
+
+async function saveCurrentProject({ forceSaveAs = false, autosave = false } = {}) {
+  if (state.project.isSaving) return;
+
+  window.clearTimeout(autosaveTimerId);
+  state.project.isSaving = true;
+  updateProjectStatusUi('جارٍ الحفظ...');
+  let failed = false;
+
+  try {
+    const savingRevision = projectChangeRevision;
+    const payload = buildProjectPayload();
+    const result = forceSaveAs
+      ? await window.projectApi.saveProjectAs(payload)
+      : await window.projectApi.saveProject(payload);
+
+    if (!result?.success) {
+      throw new Error(result?.error || 'فشل الحفظ');
+    }
+    if (result.canceled) {
+      return;
+    }
+
+    applyProjectMeta(result.project, result.filePath);
+    if (projectChangeRevision !== savingRevision) {
+      state.project.isDirty = true;
+      scheduleAutosave();
+    }
+    updateProjectStatusUi('تم الحفظ');
+  } catch (err) {
+    failed = true;
+    if (!autosave) {
+      setStatus('خطأ', err?.message || 'فشل حفظ المشروع');
+    }
+    updateProjectStatusUi('فشل الحفظ');
+  } finally {
+    state.project.isSaving = false;
+    updateProjectStatusUi(failed ? 'فشل الحفظ' : undefined);
+  }
+}
+
+function normalizeProjectSlides(slides) {
+  return (Array.isArray(slides) ? slides : []).map((slide, index) => {
+    const imagePath = slide.imagePath || '';
+    return {
+      ...slide,
+      id: slide.id || `slide-${Date.now()}-${index}`,
+      imagePath,
+      fileUrl: slide.fileUrl || (imagePath ? window.desktopApi.toFileUrl(imagePath) : ''),
+      text: slide.text || '',
+      isMuted: slide.isMuted !== false,
+      voiceoverUrl: slide.voiceoverUrl || (slide.voiceoverPath ? window.desktopApi.toFileUrl(slide.voiceoverPath) : null),
+      voiceoverDurationMs: Number(slide.voiceoverDurationMs || 0),
+    };
+  });
+}
+
+async function applyOpenedProject(project, filePath) {
+  const data = project.data || {};
+  const media = data.media || {};
+  const appearance = data.appearance || {};
+  const timing = data.timing || {};
+  const ui = data.ui || {};
+
+  isApplyingProjectData = true;
+  try {
+    state.slides = normalizeProjectSlides(data.slides);
+    state.overlay = media.overlay || '';
+    state.music = media.music || '';
+    state.voiceover = media.voiceover || null;
+    state.voiceoverDurationMs = Number(media.voiceoverDurationMs || 0);
+    state.voiceoverVolume = Number(media.voiceoverVolume || 100);
+    state.musicVolume = Number(media.musicVolume || 50);
+    state.endPage = media.endPage || '';
+    state.endPageDisabledByUser = Boolean(media.endPageDisabledByUser);
+    state.endPageDurationFrames = Number(media.endPageDurationFrames || 0);
+    state.endPageDurationSource = media.endPageDurationSource || '';
+    state.effects = Array.isArray(appearance.effects) ? [...appearance.effects] : [];
+    state.textPreset = appearance.textPreset || state.textPreset;
+    state.textAnimationType = appearance.textAnimationType || state.textAnimationType;
+    state.parallaxEnabled = appearance.parallaxEnabled !== false;
+    state.cinematicBarSize = Number(appearance.cinematicBarSize || state.cinematicBarSize);
+    state.textFontSize = Number(appearance.textFontSize || state.textFontSize);
+    state.textBottomOffset = Number(appearance.textBottomOffset || state.textBottomOffset);
+    state.textHorizontalOffset = Number(appearance.textHorizontalOffset || 0);
+    state.slideDurationInSeconds = Number(timing.slideDurationInSeconds || state.slideDurationInSeconds);
+    state.selectedSlideId = ui.selectedSlideId || null;
+
+    if (data.settings && typeof data.settings === 'object') {
+      state.settings = { ...state.settings, ...data.settings, geminiApiKey: state.settings.geminiApiKey };
+      updatePromptInspector();
+    }
+
+    const turboCheckbox = document.getElementById('turbo-render-checkbox');
+    if (turboCheckbox && data.render) {
+      turboCheckbox.checked = Boolean(data.render.turboMode);
+    }
+
+    applyProjectMeta(project, filePath);
+    syncAssetControlsV2();
+    await ensureEndPageDuration();
+    updateVoiceoverMeta();
+    renderSlides();
+    activateTab(ui.activeTab || 'tab-content-slides');
+    setStatus('المشروع', 'تم فتح المشروع بنجاح');
+  } finally {
+    isApplyingProjectData = false;
+    projectChangeRevision = 0;
+    state.project.isDirty = false;
+    updateProjectStatusUi();
+  }
+}
+
+async function openProjectFromDisk() {
+  const result = await window.projectApi.openProject({
+    isDirty: state.project.isDirty,
+    project: buildProjectPayload(),
+  });
+
+  if (!result?.success) {
+    setStatus('خطأ', result?.error || 'تعذر فتح المشروع');
+    updateProjectStatusUi('فشل الحفظ');
+    return;
+  }
+  if (result.canceled) {
+    return;
+  }
+
+  await applyOpenedProject(result.project, result.filePath);
 }
 
 function buildBadge(label, tone = '') {
@@ -366,6 +647,10 @@ function syncTextSettingsUi() {
 
 function isVideoFile(value) {
   return /\.(mp4|mov|webm|m4v)$/i.test(value || '');
+}
+
+function isSupportedSlideImage(value) {
+  return /\.(png|jpe?g|webp)$/i.test(value || '');
 }
 
 function clamp(value, min, max) {
@@ -557,6 +842,7 @@ function moveSlide(fromIndex, toIndex) {
   const [movedSlide] = nextSlides.splice(fromIndex, 1);
   nextSlides.splice(toIndex, 0, movedSlide);
   state.slides = nextSlides;
+  markProjectDirty();
 }
 
 function reorderSlidesById(draggedSlideId, targetSlideId) {
@@ -567,6 +853,49 @@ function reorderSlidesById(draggedSlideId, targetSlideId) {
   const fromIndex = state.slides.findIndex((slide) => slide.id === draggedSlideId);
   const toIndex = state.slides.findIndex((slide) => slide.id === targetSlideId);
   moveSlide(fromIndex, toIndex);
+}
+
+async function handleReplaceSlideImage(slideId) {
+  if (state.replacingSlideImageId) {
+    return;
+  }
+
+  const slide = state.slides.find((item) => item.id === slideId);
+  if (!slide) {
+    return;
+  }
+
+  state.selectedSlideId = slideId;
+  state.replacingSlideImageId = slideId;
+  renderSlides();
+  updateProjectStatusUi();
+
+  try {
+    const pickedImage = await window.desktopApi.pickSlideImage();
+    if (!pickedImage) {
+      return;
+    }
+
+    if (!isSupportedSlideImage(pickedImage.imagePath || pickedImage.fileUrl)) {
+      setStatus('خطأ', 'اختر صورة بصيغة PNG أو JPG أو JPEG أو WEBP');
+      return;
+    }
+
+    const currentSlide = state.slides.find((item) => item.id === slideId);
+    if (!currentSlide) {
+      return;
+    }
+
+    currentSlide.imagePath = pickedImage.imagePath;
+    currentSlide.fileUrl = pickedImage.fileUrl;
+    markProjectDirty();
+    setStatus('الشرائح', 'تم تغيير صورة الشريحة المحددة');
+  } catch (err) {
+    setStatus('خطأ', err?.message || 'تعذر تغيير صورة الشريحة');
+  } finally {
+    state.replacingSlideImageId = null;
+    renderSlides();
+  }
 }
 
 function ensurePreviewShell() {
@@ -1339,6 +1668,20 @@ function buildSlideCard(slide, index) {
     thumb.alt = `Slide ${index + 1}`;
   }
   thumbWrap.appendChild(thumb);
+
+  const changeImageBtn = document.createElement('button');
+  changeImageBtn.type = 'button';
+  changeImageBtn.className = 'slide-change-image-btn';
+  changeImageBtn.textContent = state.replacingSlideImageId === slide.id ? '...' : 'تغيير';
+  changeImageBtn.title = 'تغيير صورة الشريحة';
+  changeImageBtn.setAttribute('aria-label', `تغيير صورة الشريحة ${index + 1}`);
+  changeImageBtn.disabled = state.replacingSlideImageId === slide.id;
+  changeImageBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleReplaceSlideImage(slide.id);
+  });
+  thumbWrap.appendChild(changeImageBtn);
   
   if (isVideo) {
      const muteBtn = document.createElement('button');
@@ -1359,6 +1702,7 @@ function buildSlideCard(slide, index) {
        e.stopPropagation();
        slide.isMuted = slide.isMuted === false ? true : false;
        muteBtn.innerHTML = slide.isMuted ? '🔇' : '🔊';
+       markProjectDirty();
        renderPreviewFrame();
      });
      thumbWrap.appendChild(muteBtn);
@@ -1400,6 +1744,7 @@ function buildSlideCard(slide, index) {
     if (state.selectedSlideId === slide.id) {
       state.selectedSlideId = null;
     }
+    markProjectDirty();
     renderSlides();
   });
 
@@ -1583,6 +1928,7 @@ async function handleGenerateVoiceovers() {
           voiceoverDurationMs: updated.voiceoverDurationMs,
         };
       });
+      markProjectDirty();
       renderSlides();
     }
 
@@ -1638,6 +1984,7 @@ async function handleGenerateTextVoiceover() {
       elements.voiceoverFilename.title = text;
     }
     updateVoiceoverMeta();
+    markProjectDirty();
     if (statusEl) statusEl.textContent = '✓ تم التوليد بنجاح';
     setStatus('اكتمل', 'تم توليد التعليق الصوتي بنجاح');
     renderPreviewFrame();
@@ -1810,6 +2157,7 @@ async function bootstrap() {
   updatePromptInspector();
 
   const bootstrapPayload = await window.desktopApi.bootstrap();
+  state.appVersion = bootstrapPayload.appVersion || state.appVersion;
   state.assets = bootstrapPayload.assets;
   state.placeholderPath = bootstrapPayload.placeholderPath || null;
   ensureDesktopFont(bootstrapPayload.fontDataUrl);
@@ -1824,6 +2172,7 @@ async function bootstrap() {
   renderSlides();
   setStatus('رندر الفيديو', '');
   setProgress(0, 'لم يبدأ الرندر بعد');
+  updateProjectStatusUi();
 }
 
 async function handlePickSlides() {
@@ -1834,7 +2183,40 @@ async function handlePickSlides() {
 
   state.slides = [...state.slides, ...pickedSlides];
   state.selectedSlideId = state.selectedSlideId || pickedSlides[0].id;
+  markProjectDirty();
   renderSlides();
+}
+
+function shouldIgnoreDirtyEvent(target) {
+  if (!target || typeof target.closest !== 'function') return false;
+  return Boolean(target.closest(
+    '#preview-seek, .preview-icon-btn, #preview-stage, #project-save-btn, #project-open-btn, #settings-modal-overlay',
+  ));
+}
+
+document.addEventListener('input', (event) => {
+  if (!shouldIgnoreDirtyEvent(event.target)) {
+    markProjectDirty();
+  }
+}, true);
+
+document.addEventListener('change', (event) => {
+  if (!shouldIgnoreDirtyEvent(event.target)) {
+    markProjectDirty();
+  }
+}, true);
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('.tab-btn')) {
+    markProjectDirty();
+  }
+}, true);
+
+if (elements.projectSaveBtn) {
+  elements.projectSaveBtn.addEventListener('click', () => saveCurrentProject());
+}
+if (elements.projectOpenBtn) {
+  elements.projectOpenBtn.addEventListener('click', openProjectFromDisk);
 }
 
 elements.pickSlidesBtn.addEventListener('click', handlePickSlides);
@@ -1896,6 +2278,7 @@ if (elements.pickVoiceoverBtn) {
       elements.voiceoverFilename.textContent = parsedPath;
       elements.voiceoverFilename.title = parsedPath;
       updateVoiceoverMeta();
+      markProjectDirty();
       renderPreviewFrame();
     }
   });
@@ -1906,6 +2289,7 @@ if (elements.pickVoiceoverBtn) {
     elements.voiceoverFilename.textContent = 'بدون تعليق';
     elements.voiceoverFilename.title = 'بدون تعليق صوتی';
     updateVoiceoverMeta();
+    markProjectDirty();
     renderPreviewFrame();
   });
 }
@@ -1973,6 +2357,7 @@ elements.textPresetButtons.forEach((button) => {
   button.addEventListener('click', () => {
     state.textPreset = button.dataset.preset || 'dark';
     syncTextSettingsUi();
+    markProjectDirty();
     renderPreviewFrame();
   });
 });
@@ -2005,6 +2390,7 @@ if (elements.textAnimationButtons) {
     }
     state.textAnimationType = button.dataset.animationPreset || 'motion-blur';
     syncTextSettingsUi();
+    markProjectDirty();
     renderPreviewFrame();
   });
 }
@@ -2119,6 +2505,7 @@ async function handleGenerateContentSlides() {
     }
 
     renderSlides();
+    markProjectDirty();
     renderPreviewFrame();
     if (status) status.textContent = `✅ تم توليد ${result.slides.length} شريحة — راجع السكريبت أدناه`;
     setStatus('المحتوى', `تم إنشاء ${result.slides.length} شريحة من Gemini`);
@@ -2169,6 +2556,7 @@ async function handleGenerateScriptVoiceover() {
       elements.voiceoverFilename.title = scriptText.slice(0, 80);
     }
     updateVoiceoverMeta();
+    markProjectDirty();
     renderPreviewFrame();
 
     if (statusEl) statusEl.textContent = `✅ تم التوليد — ${(state.voiceoverDurationMs / 1000).toFixed(1)}ث`;
@@ -2294,6 +2682,7 @@ async function saveSettings() {
     state.settings = newSettings;
     updatePromptInspector();
     closeSettingsModal();
+    markProjectDirty();
     setStatus('الإعدادات', 'تم حفظ الإعدادات بنجاح');
   } else {
     setStatus('خطأ', 'فشل حفظ الإعدادات');
