@@ -1566,6 +1566,55 @@ async function handleGenerateVoiceovers() {
   }
 }
 
+async function handleGenerateTextVoiceover() {
+  const btn = document.getElementById('generate-text-voiceover-btn');
+  const statusEl = document.getElementById('tts-gen-status');
+  const textarea = document.getElementById('voiceover-text-input');
+
+  const text = textarea ? textarea.value.trim() : '';
+  if (!text) {
+    if (statusEl) statusEl.textContent = '⚠️ اكتب النص أولاً';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري التوليد...'; }
+  if (statusEl) statusEl.textContent = '';
+  setStatus('توليد الصوت', 'جاري الاتصال بخدمة Gemini TTS...');
+
+  try {
+    const result = await window.desktopApi.generateSingleVoiceover({
+      text,
+      voiceName: state.settings.ttsVoice || DEFAULT_SETTINGS.ttsVoice,
+      ttsModel: state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel,
+      apiKey: state.settings.geminiApiKey || '',
+    });
+
+    if (!result.success) throw new Error(result.error || 'فشل التوليد');
+
+    state.voiceover = result.voiceoverPath;
+    state.voiceoverDurationMs = result.durationMs || 0;
+
+    const label = text.length > 40 ? text.slice(0, 40) + '...' : text;
+    if (elements.voiceoverFilename) {
+      elements.voiceoverFilename.textContent = label;
+      elements.voiceoverFilename.title = text;
+    }
+    updateVoiceoverMeta();
+    if (statusEl) statusEl.textContent = '✓ تم التوليد بنجاح';
+    setStatus('اكتمل', 'تم توليد التعليق الصوتي بنجاح');
+    renderPreviewFrame();
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `✗ ${err.message}`;
+    setStatus('خطأ', err.message || 'فشل التوليد');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="mic" style="width:17px;height:17px;display:inline;margin-left:0.4rem;"></i> توليد تعليق صوتي';
+      lucide.createIcons({ nodes: [btn] });
+    }
+  }
+}
+
 function ensureGenerateVoiceoversButton() {
   if (document.getElementById('generate-voiceovers-btn')) return;
   const renderBtn = elements.renderBtn;
@@ -1944,6 +1993,13 @@ window.addEventListener('beforeunload', () => {
   }
   pausePreview();
 });
+
+// ─── Generate Text Voiceover button ───────────────────────────────────────
+
+const generateTextVoiceoverBtn = document.getElementById('generate-text-voiceover-btn');
+if (generateTextVoiceoverBtn) {
+  generateTextVoiceoverBtn.addEventListener('click', handleGenerateTextVoiceover);
+}
 
 // ─── Settings Modal ────────────────────────────────────────────────────────
 

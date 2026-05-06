@@ -222,9 +222,30 @@
 
           <!-- === TAB: AUDIO === -->
           <div id="tab-content-audio" style="display: none; overflow-y: auto;">
+
+            <!-- توليد تعليق صوتي من نص -->
+            <div class="setting-group prop-field">
+              <label class="setting-label" style="margin-bottom: 0.6rem;">
+                <span>توليد تعليق صوتي</span>
+                <span id="tts-gen-status" class="muted-text" style="font-size: 0.78rem; font-weight: 400;"></span>
+              </label>
+              <textarea
+                id="voiceover-text-input"
+                class="input-v2"
+                placeholder="اكتب نص التعليق الصوتي هنا... سيتم توليد صوت لكامل الفيديو"
+                style="min-height: 100px; resize: vertical; line-height: 1.6; font-size: 0.9rem;"
+                dir="auto"
+              ></textarea>
+              <button id="generate-text-voiceover-btn" class="btn-blue" style="margin-top: 0.6rem; width: 100%; padding: 0.65rem; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 8px;">
+                <i data-lucide="mic" style="width: 17px; height: 17px; fill: white;"></i>
+                توليد تعليق صوتي
+              </button>
+            </div>
+
+            <!-- التعليق الصوتي الحالي -->
             <div class="setting-group prop-field">
               <label class="setting-label" style="margin-bottom: 1rem;">
-                التعليق الصوتي 
+                التعليق الصوتي الحالي
                 <span id="voiceover-meta" class="accent-text" style="font-size: 0.8rem;"></span>
               </label>
               <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">

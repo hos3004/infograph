@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   },
   getSettings: () => ipcRenderer.invoke('desktop:get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('desktop:save-settings', settings),
+  generateSingleVoiceover: (payload) => ipcRenderer.invoke('desktop:generate-single-voiceover', payload),
   generateVoiceovers: (payload) => ipcRenderer.invoke('desktop:generate-voiceovers', payload),
   onRenderProgress: (listener) => {
     const channel = (_event, payload) => listener(payload, payload);

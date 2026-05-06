@@ -420,6 +420,61 @@ ipcMain.handle('desktop:save-settings', async (_event, settings) => {
   }
 });
 
+ipcMain.handle('desktop:generate-single-voiceover', async (_event, payload) => {
+  const {
+    text,
+    voiceName = 'Charon',
+    ttsModel = 'gemini-2.5-flash-preview-tts',
+    apiKey: payloadKey,
+  } = payload;
+
+  if (!text || !text.trim()) {
+    return { success: false, error: 'النص مطلوب لتوليد التعليق الصوتي.' };
+  }
+
+  let apiKey = payloadKey && payloadKey.trim() ? payloadKey.trim() : null;
+  if (!apiKey) {
+    try {
+      const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
+      apiKey = JSON.parse(raw).geminiApiKey || null;
+    } catch {}
+  }
+  if (!apiKey) {
+    apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_TTS_API_KEY || null;
+  }
+  if (!apiKey) {
+    return { success: false, error: 'مفتاح Gemini API مفقود. أضفه في إعدادات البرنامج (⚙️).' };
+  }
+
+  try {
+    const normalizedText = text.replace(/\s+/g, ' ').trim();
+    const { data, mimeType } = await callGeminiTts(normalizedText, { apiKey, ttsModel, voiceName });
+
+    const pcmBuffer = Buffer.from(data, 'base64');
+    const sampleRate = parseSampleRate(mimeType);
+    const wavBuffer = pcmToWav(pcmBuffer, sampleRate);
+
+    const voiceoverDir = path.join(app.getPath('userData'), 'voiceovers');
+    fs.mkdirSync(voiceoverDir, { recursive: true });
+
+    const hash = crypto.createHash('sha1').update(normalizedText).digest('hex').slice(0, 10);
+    const fileName = `vo-single-${Date.now()}-${hash}.wav`;
+    const filePath = path.join(voiceoverDir, fileName);
+    fs.writeFileSync(filePath, wavBuffer);
+
+    const durationMs = Math.round(((wavBuffer.length - 44) / (sampleRate * 2)) * 1000);
+
+    return {
+      success: true,
+      voiceoverPath: filePath,
+      voiceoverUrl: toFileUrl(filePath),
+      durationMs,
+    };
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+});
+
 ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
   const {
     slides = [],
