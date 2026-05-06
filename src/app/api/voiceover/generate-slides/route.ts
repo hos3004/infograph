@@ -18,6 +18,8 @@ type GenerateSlidesRequest = {
   maxWords?: number;
   languageCode?: string;
   voiceName?: string;
+  ttsModel?: string;
+  apiKey?: string;
   ssmlGender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
   speakingRate?: number;
   pitch?: number;
@@ -74,6 +76,8 @@ export async function POST(request: NextRequest) {
           text: narration.narrationText,
           languageCode: payload.languageCode || 'ar-XA',
           voiceName: payload.voiceName,
+          ttsModel: payload.ttsModel,
+          apiKey: payload.apiKey,
           ssmlGender: payload.ssmlGender || 'MALE',
           speakingRate: payload.speakingRate ?? 0.92,
           pitch: payload.pitch ?? 0,

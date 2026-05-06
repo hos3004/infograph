@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 
 type GeminiTtsRequest = {
   text?: string;
+  apiKey?: string;
+  ttsModel?: string;
   // legacy/future hooks (kept for API stability with callers)
   languageCode?: string;
   voiceName?: string;
@@ -37,7 +39,7 @@ type GeminiResponse = {
 
 // Gemini TTS prebuilt voices — Charon and Aoede handle Arabic well
 const DEFAULT_VOICE = 'Charon';
-const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+const DEFAULT_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
 function normalizeText(text: unknown): string {
   if (typeof text !== 'string') return '';
@@ -105,19 +107,20 @@ function parseSampleRate(mimeType: string | undefined): number {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = getApiKey();
+    const payload = (await request.json()) as GeminiTtsRequest;
+
+    const apiKey = (payload.apiKey && payload.apiKey.trim()) || getApiKey();
     if (!apiKey) {
       return NextResponse.json(
         {
           error: 'Gemini API key is missing.',
           details:
-            'Set GEMINI_API_KEY (preferred) or GOOGLE_GENAI_API_KEY or GOOGLE_TTS_API_KEY in .env.local.',
+            'أضف مفتاح API من خلال صفحة الإعدادات، أو عبر متغير البيئة GEMINI_API_KEY في .env.local.',
         },
         { status: 500 }
       );
     }
 
-    const payload = (await request.json()) as GeminiTtsRequest;
     const text = normalizeText(payload.text);
 
     if (!text) {
@@ -132,8 +135,9 @@ export async function POST(request: NextRequest) {
     }
 
     const voiceName = payload.voiceName || DEFAULT_VOICE;
+    const ttsModel = (payload.ttsModel && payload.ttsModel.trim()) || DEFAULT_TTS_MODEL;
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${encodeURIComponent(
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(
       apiKey
     )}`;
 
@@ -219,7 +223,7 @@ export async function POST(request: NextRequest) {
       url: `/api/temp/voiceovers/${fileName}`,
       bytes: wavBuffer.length,
       provider: 'gemini-tts',
-      model: GEMINI_TTS_MODEL,
+      model: ttsModel,
       voiceName,
       sampleRate,
     });

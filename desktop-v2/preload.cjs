@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('desktopApi', {
     if (!p.startsWith('/')) p = '/' + p;
     return encodeURI('file://' + p).replace(/[?#]/g, encodeURIComponent);
   },
+  getSettings: () => ipcRenderer.invoke('desktop:get-settings'),
+  saveSettings: (settings) => ipcRenderer.invoke('desktop:save-settings', settings),
   onRenderProgress: (listener) => {
     const channel = (_event, payload) => listener(payload, payload);
     ipcRenderer.on('desktop:render-progress', channel);
