@@ -1524,15 +1524,9 @@ async function handleGenerateVoiceovers() {
       apiKey: state.settings.geminiApiKey || '',
     };
 
-    const response = await fetch('http://localhost:3000/api/voiceover/generate-slides', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data?.details || data?.error || 'فشل توليد السرد الصوتي');
+    const data = await window.desktopApi.generateVoiceovers(payload);
+    if (!data.success && !Array.isArray(data.slides)) {
+      throw new Error(data?.error || 'فشل توليد السرد الصوتي');
     }
 
     if (Array.isArray(data.slides)) {

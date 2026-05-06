@@ -2,9 +2,87 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const { findAssetPath, listAssetsSnapshot, toFileUrl } = require('./shared/assets.cjs');
 const { createDesktopPaths, ensureDesktopDirs } = require('./shared/paths.cjs');
+
+// ─── Voiceover helpers (runs in main process, no HTTP server needed) ──────────
+
+function buildRuleBasedNarration(slideText, maxWords = 24) {
+  const cleanPart = (v) => (v || '').replace(/\s+/g, ' ').trim();
+  const parts = slideText.split('++').map(cleanPart).filter(Boolean);
+  const [, headline, body, highlight] = parts;
+  const core = [headline, body, highlight].filter(Boolean).join('، ').replace(/\s+/g, ' ').trim();
+  const fallback = cleanPart(slideText.replace(/\+\+/g, '، '));
+  let narration = (core || fallback)
+    .replace(/\bفي هذه الشريحة\b/g, '')
+    .replace(/\bتوضح الشريحة\b/g, '')
+    .replace(/\bنرى هنا\b/g, '')
+    .replace(/\bالصورة تعرض\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const words = narration.split(/\s+/).filter(Boolean);
+  if (words.length > maxWords) narration = words.slice(0, maxWords).join(' ') + '.';
+  return narration;
+}
+
+function pcmToWav(pcmBuffer, sampleRate = 24000, channels = 1, bitsPerSample = 16) {
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const dataSize = pcmBuffer.length;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+  return Buffer.concat([header, pcmBuffer]);
+}
+
+function parseSampleRate(mimeType) {
+  if (!mimeType) return 24000;
+  const match = mimeType.match(/rate=(\d+)/);
+  if (!match) return 24000;
+  const rate = parseInt(match[1], 10);
+  return Number.isFinite(rate) && rate > 0 ? rate : 24000;
+}
+
+async function callGeminiTts(text, { apiKey, ttsModel, voiceName }) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const promptVariants = [`Read aloud: ${text}`, `Say in a clear neutral voice: ${text}`];
+
+  for (const ttsPrompt of promptVariants) {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: ttsPrompt }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
+        },
+      }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result?.error?.message || `Gemini TTS HTTP ${res.status}`);
+
+    const part = result.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
+    if (part?.inlineData?.data) {
+      return { data: part.inlineData.data, mimeType: part.inlineData.mimeType };
+    }
+  }
+  throw new Error('Gemini TTS did not return audio data');
+}
 
 let mainWindow = null;
 let renderWorker = null;
@@ -340,6 +418,71 @@ ipcMain.handle('desktop:save-settings', async (_event, settings) => {
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+
+ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
+  const {
+    slides = [],
+    voiceName = 'Charon',
+    ttsModel = 'gemini-2.5-flash-preview-tts',
+    apiKey: payloadKey,
+    maxWords = 24,
+  } = payload;
+
+  // Resolve API key: payload → settings file → env var
+  let apiKey = payloadKey && payloadKey.trim() ? payloadKey.trim() : null;
+  if (!apiKey) {
+    try {
+      const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
+      apiKey = JSON.parse(raw).geminiApiKey || null;
+    } catch {}
+  }
+  if (!apiKey) {
+    apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_TTS_API_KEY || null;
+  }
+  if (!apiKey) {
+    return { success: false, error: 'مفتاح Gemini API مفقود. أضفه في إعدادات البرنامج (⚙️).' };
+  }
+
+  const voiceoverDir = path.join(app.getPath('userData'), 'voiceovers');
+  fs.mkdirSync(voiceoverDir, { recursive: true });
+
+  const updatedSlides = [];
+  const errors = [];
+
+  for (const slide of slides) {
+    if (!slide?.text?.trim()) {
+      updatedSlides.push(slide);
+      continue;
+    }
+    try {
+      const narrationText = buildRuleBasedNarration(slide.text, maxWords);
+      const { data, mimeType } = await callGeminiTts(narrationText, { apiKey, ttsModel, voiceName });
+
+      const pcmBuffer = Buffer.from(data, 'base64');
+      const sampleRate = parseSampleRate(mimeType);
+      const wavBuffer = pcmToWav(pcmBuffer, sampleRate);
+
+      const hash = crypto.createHash('sha1').update(narrationText).digest('hex').slice(0, 10);
+      const fileName = `vo-${Date.now()}-${hash}.wav`;
+      const filePath = path.join(voiceoverDir, fileName);
+      fs.writeFileSync(filePath, wavBuffer);
+
+      const durationMs = Math.round(((wavBuffer.length - 44) / (sampleRate * 2)) * 1000);
+
+      updatedSlides.push({
+        ...slide,
+        voiceoverText: narrationText,
+        voiceoverUrl: toFileUrl(filePath),
+        voiceoverDurationMs: durationMs,
+      });
+    } catch (err) {
+      errors.push({ id: slide.id, error: err?.message || String(err) });
+      updatedSlides.push(slide);
+    }
+  }
+
+  return { success: errors.length === 0, slides: updatedSlides, errors };
 });
 
 app.whenReady().then(createWindow);
