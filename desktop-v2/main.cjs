@@ -65,7 +65,7 @@ const { createDesktopPaths, ensureDesktopDirs } = require('./shared/paths.cjs');
 
 // ─── Voiceover helpers (runs in main process, no HTTP server needed) ──────────
 
-function buildRuleBasedNarration(slideText, maxWords = 24) {
+function buildRuleBasedNarration(slideText, maxWords = 18) {
   const cleanPart = (v) => (v || '').replace(/\s+/g, ' ').trim();
   const parts = slideText.split('++').map(cleanPart).filter(Boolean);
   const [, headline, body, highlight] = parts;
@@ -583,12 +583,12 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
 أسلوب المحتوى: ${contentStyle}
 نمط حركة النص المُفضَّل: ${preset}
 مدة التعليق الصوتي المستهدفة: حوالي 8 ثوانٍ لكل شريحة.
-طول السكريبت الصوتي لكل شريحة: من 18 إلى 24 كلمة عربية.
+طول السكريبت الصوتي لكل شريحة: من 15 إلى 18 كلمة عربية فقط (لا تتجاوز 18 كلمة).
 
 لكل شريحة أعد:
 - title: عنوان داخلي مختصر
 - text: نص الشاشة — أربعة أجزاء قصيرة مفصولة بـ "++" (كيكر ++ عنوان ++ شرح ++ خلاصة)
-- voiceoverText: سكريبت صوتي عربي طبيعي من 18-24 كلمة لمدة ~8 ثوانٍ، لا يكرر نص الشاشة حرفياً
+- voiceoverText: سكريبت صوتي عربي طبيعي من 15-18 كلمة فقط لمدة ~8 ثوانٍ، لا يكرر نص الشاشة حرفياً
 - imagePrompt: وصف بالإنجليزية لصورة سينمائية واقعية بدون نص أو شعارات
 - visualHint: توجيه بصري عربي مختصر
 
@@ -598,7 +598,7 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
     {
       "title": "عنوان داخلي",
       "text": "كيكر ++ عنوان قوي ++ شرح مختصر ++ خلاصة",
-      "voiceoverText": "سكريبت صوتي عربي طبيعي من 18-24 كلمة لهذه الشريحة.",
+      "voiceoverText": "سكريبت صوتي عربي طبيعي من 15-18 كلمة لهذه الشريحة.",
       "imagePrompt": "English cinematic realistic visual prompt, no text, no logos",
       "visualHint": "توجيه بصري"
     }
@@ -665,7 +665,7 @@ ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
     voiceName = 'Charon',
     ttsModel = 'gemini-2.5-flash-preview-tts',
     apiKey: payloadKey,
-    maxWords = 24,
+    maxWords = 18,
   } = payload;
 
   // Resolve API key: payload → settings file → env var

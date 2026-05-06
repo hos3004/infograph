@@ -1548,7 +1548,7 @@ async function handleGenerateVoiceovers() {
         voiceoverUrl: slide.voiceoverUrl,
         voiceoverDurationMs: slide.voiceoverDurationMs,
       })),
-      maxWords: 24,
+      maxWords: 18,
       languageCode: 'ar-XA',
       ssmlGender: 'MALE',
       speakingRate: 0.92,
