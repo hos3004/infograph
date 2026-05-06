@@ -1413,9 +1413,12 @@ function buildSlideCard(slide, index) {
 
 function renderSlides() {
   syncSelectedSlide();
+  // innerHTML = '' detaches emptyState from DOM — save and re-append it
+  const emptyEl = elements.emptyState;
   elements.slidesList.innerHTML = '';
+  elements.slidesList.appendChild(emptyEl);
   elements.slidesCount.textContent = String(state.slides.length);
-  elements.emptyState.style.display = state.slides.length === 0 ? 'block' : 'none';
+  emptyEl.style.display = state.slides.length === 0 ? 'flex' : 'none';
 
   state.slides.forEach((slide, index) => {
     elements.slidesList.appendChild(buildSlideCard(slide, index));
