@@ -2049,7 +2049,10 @@ async function handleGenerateContentSlides() {
       apiKey: state.settings.geminiApiKey || '',
     });
 
-    if (!result.success || !Array.isArray(result.slides) || result.slides.length === 0) {
+    if (!result.success) {
+      throw new Error(result.error || 'فشل توليد الشرائح');
+    }
+    if (!Array.isArray(result.slides) || result.slides.length === 0) {
       throw new Error('لم يتم الحصول على شرائح من Gemini');
     }
 

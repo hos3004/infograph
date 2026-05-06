@@ -624,16 +624,19 @@ ${topic}`;
     if (slides.length === 0) throw new Error('لم تُولَّد أي شرائح');
 
     const placeholderPath = ensurePlaceholderPng();
+    const placeholderUrl = toFileUrl(placeholderPath);
 
     return {
       success: true,
       slides: slides.map((s, i) => ({
+        id: `content-${Date.now()}-${i}`,
         title: s.title || '',
         text: s.text || '',
         imagePrompt: s.imagePrompt || '',
         visualHint: s.visualHint || '',
-        placeholderPath,
-        placeholderUrl: toFileUrl(placeholderPath),
+        imagePath: placeholderPath,
+        fileUrl: placeholderUrl,
+        isMuted: true,
       })),
     };
   } catch (err) {
