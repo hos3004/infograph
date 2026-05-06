@@ -2,228 +2,566 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: file: blob: https://unpkg.com; img-src 'self' data: file: blob:; media-src 'self' data: file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://unpkg.com;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: file: blob: https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: file: blob:; media-src 'self' data: file: blob:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://unpkg.com;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Infographic Generator Desktop V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    /* Overriding global layout */
+    /* ─── Paper Light Design System ─────────────────────────── */
+    :root {
+      --bg:           #f4f1ec;
+      --surface:      #ffffff;
+      --surface-r:    #faf8f4;
+      --border:       #e8e3da;
+      --border-s:     #d4ccbf;
+      --accent:       #5a9a6a;
+      --accent-dk:    #3d7a4d;
+      --accent-lt:    #eaf3ec;
+      --text:         #1c1a18;
+      --text-mu:      #7a736a;
+      --text-fa:      #a89f96;
+      --danger:       #dc2626;
+      --success:      #16a34a;
+      --font:         'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+      --sh-sm:        0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --sh-md:        0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+      --sh-lg:        0 20px 60px rgba(0,0,0,0.20);
+      --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
+    }
+
+    /* Override dark styles.css */
+    body {
+      background-color: var(--bg) !important;
+      color: var(--text) !important;
+      margin: 0; padding: 0;
+    }
     .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
     .header, footer { display: none !important; }
-    
+
     .v2-root {
-      --bg-app: #f1f5f9;
-      --bg-panel: #ffffff;
-      --bg-input: #ffffff;
-      --border-color: #cbd5e1;
-      --border-focus: #94a3b8;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --accent: #3b82f6;
-      font-family: var(--font-arabic), 'AvenirArabic', 'Segoe UI', Tahoma, Arial, sans-serif;
-      height: 100vh; max-height: 100vh; overflow: hidden; display: flex; flex-direction: column; background-color: var(--bg-app); color: var(--text-main); direction: rtl;
+      font-family: var(--font);
+      height: 100vh; max-height: 100vh; overflow: hidden;
+      display: flex; flex-direction: column;
+      background-color: var(--bg); color: var(--text); direction: rtl;
     }
-    
-    /* Typography Helpers */
-    .muted-text { color: #64748b; font-size: 0.9rem; }
-    .accent-text { color: #3b82f6; font-weight: 600; }
-    
-    /* Top Navigation */
-    .top-bar { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.75rem 2rem; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); height: 60px; flex-shrink: 0; }
-    .logo-section { display: flex; align-items: center; gap: 0.75rem; font-size: 1.25rem; font-weight: 700; color: #1e293b; }
-    .top-bar-btns { display: flex; gap: 1rem; }
-    .btn-blue { background-color: #3b82f6 !important; color: white !important; padding: 0.6rem 2.25rem; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s; font-size: 1.35rem;}
-    .btn-blue:hover { background-color: #2563eb !important; }
-    .btn-blue-outline { background-color: transparent; color: #3b82f6; padding: 0.6rem 2.25rem; border-radius: 6px; font-weight: 600; border: 1px solid #3b82f6; cursor: pointer; transition: all 0.2s; font-size: 1.35rem;}
-    .btn-blue-outline:hover { background-color: #eff6ff; }
-    
-    .main-content { display: flex; flex: 1; gap: 1rem; padding: 1rem; min-height: 0; box-sizing: border-box; overflow: hidden; }
-    
-    /* Right Panel tabs */
-    .right-panel { flex: 1; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; min-height: 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-    .tabs-header { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
-    .tab-btn { flex: 1; padding: 1rem; border: none; background: transparent; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-    .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; background: #ffffff; }
-    .tab-content { padding: 1rem; flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-    
-    /* Toggle Switch */
+
+    /* ─── Utilities ────────────────────────────────────────── */
+    .muted-text  { color: var(--text-mu); font-size: 0.85rem; }
+    .accent-text { color: var(--accent); font-weight: 600; }
+    .ui-hidden   { display: none !important; }
+
+    /* ─── Top Bar ──────────────────────────────────────────── */
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); padding: 0 1.25rem;
+      border-bottom: 1px solid var(--border); box-shadow: var(--sh-sm);
+      height: 56px; flex-shrink: 0;
+    }
+    .logo-section { display: flex; align-items: center; gap: 0.6rem; }
+    .brand-mark {
+      width: 32px; height: 32px; background: #1c1a18; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; position: relative; overflow: hidden; flex-shrink: 0;
+    }
+    .brand-mark svg { position: relative; z-index: 1; }
+    .brand-mark::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 70% 30%, var(--accent) 0%, transparent 65%);
+      opacity: 0.55;
+    }
+    .brand-name {
+      font-size: 1rem; font-weight: 700; color: var(--text);
+      letter-spacing: -0.01em; white-space: nowrap;
+    }
+    .brand-name em { font-style: normal; color: var(--accent); }
+
+    .project-actions { display: inline-flex; align-items: center; gap: 5px; margin-inline-start: 4px; }
+    .project-icon-btn {
+      position: relative; width: 34px; height: 34px; border-radius: var(--r-sm);
+      border: 1px solid var(--border); background: var(--surface-r);
+      color: var(--text-mu); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all 0.18s ease; font-family: var(--font);
+    }
+    .project-icon-btn:hover { background: var(--accent-lt); border-color: var(--accent); color: var(--accent); }
+    .project-icon-btn.is-dirty  { color: #b45309; border-color: #f59e0b; background: #fffbeb; }
+    .project-icon-btn.is-saving { color: var(--accent); }
+    .project-status-dot {
+      position: absolute; top: 4px; right: 4px; width: 7px; height: 7px;
+      border-radius: 50%; border: 1.5px solid var(--surface); opacity: 0;
+      background: var(--success);
+    }
+    .project-icon-btn.is-dirty .project-status-dot,
+    .project-icon-btn.is-saving .project-status-dot { opacity: 1; }
+    .project-icon-btn.is-dirty .project-status-dot  { background: #f59e0b; }
+    .project-icon-btn.is-saving .project-status-dot { background: var(--accent); }
+    .project-save-status { color: var(--text-mu); font-size: 0.76rem; font-weight: 600; white-space: nowrap; }
+
+    .top-bar-btns { display: flex; align-items: center; gap: 0.5rem; }
+    .nav-pills-wrap {
+      display: flex; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px; gap: 2px;
+    }
+    .nav-pill {
+      padding: 0.28rem 0.8rem; border-radius: 16px; font-size: 0.86rem;
+      font-weight: 600; text-decoration: none; color: var(--text-mu);
+      transition: all 0.2s; white-space: nowrap; font-family: var(--font);
+    }
+    .nav-pill:hover { color: var(--text); }
+    .nav-pill-active { background: var(--surface); color: var(--text); box-shadow: var(--sh-sm); }
+    .btn-icon {
+      width: 34px; height: 34px; background: var(--surface-r); border: 1px solid var(--border);
+      border-radius: var(--r-sm); color: var(--text-mu);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; font-family: var(--font);
+    }
+    .btn-icon:hover { background: var(--accent-lt); border-color: var(--accent); color: var(--accent); }
+
+    /* ─── Main Layout ──────────────────────────────────────── */
+    .main-content {
+      display: flex; flex: 1; gap: 0.75rem;
+      padding: 0.75rem; min-height: 0; overflow: hidden;
+    }
+
+    /* ─── Tabs Panel ───────────────────────────────────────── */
+    .right-panel {
+      flex: 1; background: var(--surface); border-radius: var(--r-lg);
+      border: 1px solid var(--border); display: flex; flex-direction: column;
+      overflow: hidden; min-height: 0; box-shadow: var(--sh-sm);
+    }
+    .tabs-header {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--surface-r); position: relative; flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 0.82rem 0.5rem; border: none; background: transparent;
+      font-weight: 600; font-size: 0.86rem; color: var(--text-mu); cursor: pointer;
+      transition: color 0.2s; border-bottom: none;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      font-family: var(--font);
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--text); }
+    .tabs-indicator {
+      position: absolute; bottom: -1px; height: 2px;
+      background: var(--accent); border-radius: 2px 2px 0 0;
+      transition: left 0.28s cubic-bezier(0.65, 0, 0.35, 1),
+                  width 0.28s cubic-bezier(0.65, 0, 0.35, 1);
+      pointer-events: none;
+    }
+    .tab-content {
+      padding: 0.75rem; flex: 1; overflow: hidden;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+
+    /* ─── Inputs & Buttons ─────────────────────────────────── */
+    button, select, input, textarea { font-family: var(--font); }
+
+    .input-v2 {
+      width: 100%; padding: 0.6rem 0.75rem;
+      border-radius: var(--r-sm); border: 1px solid var(--border);
+      color: var(--text); font-family: var(--font); background: var(--surface);
+      font-size: 0.88rem; transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    .input-v2:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(90,154,106,0.12);
+    }
+
+    .btn-blue {
+      background: var(--accent) !important; color: white !important;
+      padding: 0.6rem 1.5rem; border-radius: var(--r-sm);
+      font-weight: 700; border: none; cursor: pointer;
+      transition: filter 0.2s; font-size: 0.95rem; font-family: var(--font);
+    }
+    .btn-blue:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn-blue:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-blue-outline {
+      background: transparent; color: var(--accent);
+      padding: 0.48rem 1rem; border-radius: var(--r-sm);
+      font-weight: 600; border: 1.5px solid var(--accent);
+      cursor: pointer; transition: all 0.2s; font-size: 0.88rem; font-family: var(--font);
+    }
+    .btn-blue-outline:hover { background: var(--accent-lt); }
+
+    .btn-secondary {
+      background: var(--surface-r); border: 1px solid var(--border);
+      color: var(--text-mu); padding: 0.58rem 0.9rem; border-radius: var(--r-sm);
+      font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      transition: all 0.2s; font-family: var(--font); font-size: 0.86rem;
+    }
+    .btn-secondary:hover { background: var(--bg); color: var(--text); border-color: var(--border-s); }
+
+    /* ─── Setting Groups ───────────────────────────────────── */
+    .setting-group {
+      margin-bottom: 0.9rem; background: var(--surface-r);
+      padding: 0.85rem; border-radius: var(--r-md); border: 1px solid var(--border);
+    }
+    .setting-label {
+      font-weight: 700; color: var(--text); font-size: 0.86rem;
+      margin-bottom: 0.55rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    .slider-labels { font-size: 0.84rem; }
+
+    /* ─── Slides List ──────────────────────────────────────── */
+    .slides-list { padding: 0.25rem; display: flex; flex-direction: column; gap: 0.45rem; }
+    .empty-state {
+      text-align: center; cursor: pointer; color: var(--text-fa);
+      padding: 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+      border: 2px dashed var(--border-s); border-radius: var(--r-md); transition: all 0.2s;
+    }
+    .empty-state:hover { border-color: var(--accent); background: var(--accent-lt); color: var(--accent); }
+
+    /* Slide cards */
+    .slide-card {
+      display: grid; direction: rtl;
+      grid-template-columns: 20px 80px 1fr 30px;
+      gap: 8px; padding: 9px;
+      border-radius: var(--r-md); background: var(--surface);
+      border: 1px solid var(--border); align-items: center;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .slide-card:hover  { border-color: var(--border-s); box-shadow: var(--sh-sm); }
+    .slide-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(90,154,106,0.18); }
+    .slide-card.drag-over { border-color: var(--accent); opacity: 0.7; }
+
+    .slide-side-meta { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .slide-order { font-size: 0.68rem; font-weight: 700; color: var(--text-fa); font-family: var(--font-mono); }
+    .drag-handle { color: var(--text-fa); cursor: grab; display: flex; flex-direction: column; gap: 3px; align-items: center; }
+    .drag-handle span { display: block; width: 10px; height: 1.5px; background: currentColor; border-radius: 2px; }
+
+    .slide-thumb-wrap { width: 100%; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; background: var(--bg); position: relative; }
+    .slide-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .slide-change-image-btn {
+      position: absolute; top: 4px; right: 4px; z-index: 2;
+      padding: 3px 6px; border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.4);
+      background: rgba(0,0,0,0.6); color: white;
+      font-size: 0.7rem; font-weight: 700; cursor: pointer;
+      opacity: 0; pointer-events: none; font-family: var(--font);
+      transition: opacity 0.18s, background 0.18s;
+    }
+    .slide-thumb-wrap:hover .slide-change-image-btn { opacity: 1; pointer-events: auto; }
+    .slide-change-image-btn:hover { background: rgba(90,154,106,0.88); }
+    .slide-change-image-btn:disabled { cursor: wait; opacity: 0.75; }
+
+    .slide-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .slide-input {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 5px 8px;
+      color: var(--text); font-size: 0.8rem;
+      direction: rtl; width: 100%; box-sizing: border-box; font-family: var(--font);
+    }
+    .slide-input:focus { outline: none; border-color: var(--accent); }
+    .slide-voiceover-badge { font-size: 0.7rem; color: var(--success); font-weight: 700; }
+
+    .slide-delete-btn {
+      background: transparent; border: 1px solid transparent;
+      color: var(--text-fa); border-radius: 4px;
+      width: 30px; height: 30px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; transition: all 0.2s;
+    }
+    .slide-delete-btn:hover { background: #fef2f2; border-color: #fca5a5; color: var(--danger); }
+
+    /* ─── Range Sliders ────────────────────────────────────── */
+    .range-input {
+      --range-fill: 50%;
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: linear-gradient(90deg, var(--accent) var(--range-fill), var(--border) var(--range-fill));
+      border-radius: 2px; margin: 6px 0;
+    }
+    .range-input::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      background: var(--surface); border-radius: 50%; cursor: ew-resize;
+      border: 2px solid var(--accent); box-shadow: var(--sh-sm);
+    }
+
+    /* ─── Toggle Switch ────────────────────────────────────── */
     .switch { position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0; }
     .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 20px; }
-    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-    .switch input:checked + .slider { background-color: #f59e0b; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: var(--border-s); transition: .3s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; transition: .3s; border-radius: 50%; }
+    .switch input:checked + .slider { background: #f59e0b; }
     .switch input:checked + .slider:before { transform: translateX(14px); }
-    
-    /* Left main panel */
-    .left-panel { flex: 1.25; display: flex; flex-direction: column; gap: 0.75rem; overflow: hidden;}
-    .preview-container { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 0.75rem; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); flex-shrink: 0; max-height: calc(100vh - 210px); }
-    
-    /* Player */
-    .player-wrapper { width: 100%; aspect-ratio: 16/9; max-height: calc(100vh - 350px); margin: 0 auto; background: #000000; border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #334155; flex-direction: column; }
-    .preview-player-ui { width: 100%; position: absolute; bottom: 0; left: 0; padding: 1rem; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%); display: flex; flex-direction: column; gap: 0.5rem; }
-    .preview-control-row { display: flex; align-items: center; gap: 1rem; color: white; margin-bottom: 0.5rem; direction: ltr; }
-    .preview-icon-btn { background: transparent; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-    .preview-icon-btn:hover { color: #3b82f6; }
-    .preview-time-inline { font-size: 0.85rem; font-family: monospace; }
-    .range-input { width: 100%; accent-color: #3b82f6; margin: 0; }
-    
-    /* Piano Keys (Effects) */
-    .piano-effects-bar { display: flex; width: 100%; height: 50px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #f8fafc; margin-top: 0.5rem;}
-    .piano-key-label { cursor: pointer; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid #e2e8f0; transition: all 0.2s; color: #64748b; font-size: 0.8rem; font-weight: 600;}
-    .piano-key-label:first-child { border-left: none; }
-    .piano-key-label:hover { background: #e2e8f0; color: #3b82f6; }
-    .effect-checkbox { display: none !important; }
-    .effect-checkbox:checked + .piano-key-content { color: #3b82f6; font-weight: bold; }
-    
-    /* Save Section & Progress */
-    .save-section { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; gap: 0.75rem; flex-shrink: 0;}
-    
-    .progress-box { background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; }
-    .progress-meta { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem; }
-    .progress-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: #3b82f6; transition: width 0.3s ease; }
-    
-    /* UI Components */
-    .setting-group { margin-bottom: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #f1f5f9; }
-    .setting-label { font-weight: 600; color: #334155; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
-    .input-v2 { width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid #cbd5e1; color: #1e293b; font-family: inherit; background: #ffffff; }
-    .input-v2:focus { outline: none; border-color: #3b82f6; }
-    
-    .btn-secondary { background: #f8fafc; border: 1px solid #cbd5e1; color: #475569; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; }
-    .btn-secondary:hover { background: #f1f5f9; color: #0f172a; border-color: #94a3b8; }
-    
+
+    /* ─── Color Presets ────────────────────────────────────── */
     .color-presets { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .preset-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
-    .preset-btn:hover { transform: scale(1.1); }
-    .preset-orange { background: #fdba74; } .preset-red { background: #fca5a5; } .preset-blue { background: #93c5fd; } .preset-gold { background: #fde047; } .preset-dark { background: #334155; }
-    
-    /* Slides list area */
-    .slides-list { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .empty-state { text-align: center; cursor: pointer; color: #94a3b8; padding: 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border: 2px dashed #cbd5e1; border-radius: 8px; transition: 0.2s;}
-    .empty-state:hover { border-color: #3b82f6; background-color: #f1f5f9; color: #3b82f6;}
-    
-    /* Chic Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .preset-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+    .preset-btn:hover { transform: scale(1.12); }
+    .preset-btn.is-active { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
+    .preset-orange { background: #fdba74; } .preset-red { background: #fca5a5; }
+    .preset-blue { background: #93c5fd; } .preset-gold { background: #fde047; } .preset-dark { background: #334155; }
+
+    /* ─── Animation Presets ────────────────────────────────── */
+    .animation-preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px; }
+    .animation-preset-btn {
+      min-height: 38px; padding: 6px 8px;
+      border-radius: var(--r-sm); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-mu);
+      cursor: pointer; font-size: 0.76rem; font-weight: 700;
+      font-family: var(--font); transition: all 0.2s; text-align: center;
+    }
+    .animation-preset-btn:hover { border-color: var(--border-s); color: var(--text); }
+    .animation-preset-btn.is-active { background: var(--accent-lt); border-color: var(--accent); color: var(--accent-dk); }
+    .parallax-toggle { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-mu); cursor: pointer; font-size: 0.82rem; }
+    .parallax-toggle input { accent-color: var(--accent); }
+
+    /* ─── Preview Panel ────────────────────────────────────── */
+    .left-panel { flex: 1.2; display: flex; flex-direction: column; gap: 0.75rem; overflow: hidden; }
+    .preview-container {
+      background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--border);
+      padding: 0.75rem; display: flex; flex-direction: column;
+      box-shadow: var(--sh-sm); flex-shrink: 0; max-height: calc(100vh - 200px);
+    }
+
+    /* Stage dot-grid background */
+    .preview-stage-outer {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      background-color: #ece9e3;
+      background-image: radial-gradient(circle, #c5bdb2 1px, transparent 1px);
+      background-size: 18px 18px;
+      border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 12px; overflow: hidden; direction: ltr;
+    }
+    .preview-stage-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    .preview-stage-shell-fix {
+      position: relative; width: 100%; max-width: 100%; max-height: 100%;
+      aspect-ratio: 16/9; background: #000;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25); border-radius: 4px; overflow: hidden;
+      direction: ltr;
+    }
+    .preview-stage { position: absolute; inset: 0; }
+    .player-wrapper { width: 100%; aspect-ratio: 16/9; max-height: calc(100vh - 350px); position: relative; overflow: hidden; direction: ltr; }
+
+    /* Player UI */
+    .preview-player-ui {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem;
+      background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 100%);
+      z-index: 10; direction: ltr;
+    }
+    .preview-player-bottom { display: flex; flex-direction: column; gap: 8px; }
+    .preview-control-row { display: flex; align-items: center; gap: 0.75rem; color: white; direction: ltr; }
+    .preview-icon-btn {
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
+      color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 50%; transition: 0.2s;
+      backdrop-filter: blur(4px); font-size: 14px;
+    }
+    .preview-icon-btn:hover { background: rgba(255,255,255,0.2); }
+    .preview-icon-btn.large { width: 38px; height: 38px; font-size: 16px; }
+    .preview-time-inline { font-size: 0.8rem; font-family: var(--font-mono); color: white; direction: ltr; }
+    .preview-seek { width: 100%; accent-color: var(--accent); }
+    /* LTR fix for preview internals */
+    .preview-stage-outer,
+    .preview-stage-shell-fix,
+    .preview-player-bottom,
+    .preview-control-row,
+    .preview-time-inline,
+    .preview-seek { direction: ltr !important; }
+    .preview-exact-root,
+    .preview-exact-root > div { width: 100%; height: 100%; display: block !important; }
+
+    /* Piano effects bar */
+    .piano-effects-bar {
+      display: flex; width: 100%; height: 44px;
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      overflow: hidden; background: var(--surface-r); margin-top: 0.5rem;
+    }
+    .piano-key-label {
+      cursor: pointer; flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border-right: 1px solid var(--border); /* RTL: visually between keys */
+      transition: all 0.2s; color: var(--text-mu);
+      font-size: 0.74rem; font-weight: 600; margin: 0;
+      padding: 0; background: none; border-radius: 0; height: 100%;
+    }
+    .piano-key-label:first-child { border-right: none; }
+    .piano-key-label:hover { background: var(--bg); color: var(--accent); }
+    .effect-checkbox { display: none !important; }
+
+    /* ─── Render Zone ──────────────────────────────────────── */
+    .save-section {
+      background: var(--surface); border-radius: var(--r-lg);
+      border: 1px solid var(--border); padding: 0.75rem 1rem;
+      box-shadow: var(--sh-sm); display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;
+    }
+    .progress-box {
+      background: var(--surface-r); padding: 0.5rem 0.75rem;
+      border-radius: var(--r-sm); border: 1px solid var(--border);
+      flex: 1; display: flex; align-items: center; gap: 0.75rem; margin: 0;
+    }
+    .progress-track { width: 100%; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; position: relative; flex: 1; }
+    .progress-fill {
+      height: 100%; width: 0%; background: var(--accent);
+      border-radius: 3px; transition: width 0.3s ease; position: relative;
+    }
+    .progress-fill.is-active::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+      animation: shimmer 1.5s linear infinite;
+    }
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+
+    /* ─── Scrollbars ───────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-fa); }
   </style>
 </head>
-<body class="preview-uses-remotion" style="background-color: #f1f5f9; color: #0f172a; margin: 0; padding: 0;">
+<body style="background-color: var(--bg); color: var(--text); margin: 0; padding: 0;">
 
   <div class="v2-root" id="app-infographic">
-    <!-- TOP BAR -->
+
+    <!-- ─── TOP BAR ─────────────────────────────────────────── -->
     <header class="top-bar">
       <div class="logo-section">
-        <img id="brand-logo" class="brand-logo-image" alt="إنفوجراف" style="height: 54px; object-fit: contain; margin-left: 0.5rem;" />
+        <!-- Brand mark (SVG bars + green glow) -->
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 20 18" width="16" height="16" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round">
+            <line x1="2"  y1="17" x2="2"  y2="10"/>
+            <line x1="6"  y1="17" x2="6"  y2="6"/>
+            <line x1="10" y1="17" x2="10" y2="2"/>
+            <line x1="14" y1="17" x2="14" y2="8"/>
+            <line x1="18" y1="17" x2="18" y2="12"/>
+          </svg>
+        </div>
+        <span class="brand-name">إنفوجراف <em>·</em> استوديو</span>
+        <!-- Hidden logo img used by app.js -->
+        <img id="brand-logo" class="brand-logo-image" alt="" style="display:none;" />
+
         <div class="project-actions" aria-label="إدارة المشروع">
           <button id="project-save-btn" class="project-icon-btn" type="button" title="حفظ المشروع" aria-label="حفظ المشروع">
-            <i data-lucide="save" style="width: 21px; height: 21px;"></i>
+            <i data-lucide="save" style="width: 16px; height: 16px;"></i>
             <span id="project-status-dot" class="project-status-dot" aria-hidden="true"></span>
           </button>
           <button id="project-open-btn" class="project-icon-btn" type="button" title="فتح مشروع" aria-label="فتح مشروع">
-            <i data-lucide="folder-open" style="width: 22px; height: 22px;"></i>
+            <i data-lucide="folder-open" style="width: 16px; height: 16px;"></i>
           </button>
           <span id="project-save-status" class="project-save-status">مشروع جديد</span>
         </div>
-        <span id="runtime-summary" style="display: none;">Loading...</span>
+        <span id="runtime-summary" style="display: none; font-size: 0.7rem; color: var(--text-fa);"></span>
       </div>
-      <div class="top-bar-btns app-nav-pills">
-        <a href="index.html" class="nav-btn btn-blue" style="text-decoration: none;">الأنفوجراف</a>
-        <a href="../motadawel/renderer/index.html" class="nav-btn btn-blue-outline" style="text-decoration: none;">المتداول</a>
-        <button id="open-settings-btn" class="btn-secondary" title="الإعدادات" style="padding: 0.4rem 0.6rem; border-radius: 8px; display: flex; align-items: center; gap: 0.4rem;">
-          <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+
+      <div class="top-bar-btns">
+        <div class="nav-pills-wrap">
+          <a href="index.html" class="nav-pill nav-pill-active" style="text-decoration: none;">الأنفوجراف</a>
+          <a href="../motadawel/renderer/index.html" class="nav-pill" style="text-decoration: none;">المتداول</a>
+        </div>
+        <button id="open-settings-btn" class="btn-icon" title="الإعدادات" aria-label="الإعدادات">
+          <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
         </button>
       </div>
     </header>
 
     <div class="main-content">
-      
-      <!-- RIGHT PANEL - TABS -->
+
+      <!-- ─── RIGHT PANEL — TABS ──────────────────────────── -->
       <div class="right-panel panel-left" style="flex: 1;">
         <div class="tabs-header">
-          <button class="tab-btn active" data-target="tab-content-slides"><i data-lucide="layers" style="width: 20px; height: 20px;"></i> الشرائح</button>
-          <button class="tab-btn" data-target="tab-content-text"><i data-lucide="type" style="width: 20px; height: 20px;"></i> النصوص</button>
-          <button class="tab-btn" data-target="tab-content-audio"><i data-lucide="music" style="width: 20px; height: 20px;"></i> الصوتيات</button>
-          <button class="tab-btn" data-target="tab-content-generate"><i data-lucide="sparkles" style="width: 20px; height: 20px;"></i> محتوى</button>
+          <button class="tab-btn active" data-target="tab-content-slides">
+            <i data-lucide="layers" style="width: 15px; height: 15px;"></i> الشرائح
+          </button>
+          <button class="tab-btn" data-target="tab-content-text">
+            <i data-lucide="type" style="width: 15px; height: 15px;"></i> النصوص
+          </button>
+          <button class="tab-btn" data-target="tab-content-audio">
+            <i data-lucide="music" style="width: 15px; height: 15px;"></i> الصوتيات
+          </button>
+          <button class="tab-btn" data-target="tab-content-generate">
+            <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> محتوى
+          </button>
+          <div class="tabs-indicator" id="tabs-indicator"></div>
         </div>
 
         <div class="tab-content">
-          <!-- === TAB: SLIDES === -->
+
+          <!-- ══ TAB: SLIDES ══════════════════════════════════ -->
           <div id="tab-content-slides" style="display: flex; flex-direction: column; flex: 1; height: 100%; min-height: 0; overflow: hidden;">
-            <div class="setting-group prop-section slides-section" style="border: none; padding: 1rem; flex: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0.5rem; overflow: hidden;">
+            <div class="setting-group prop-section slides-section" style="border: none; padding: 0.75rem; flex: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0.5rem; overflow: hidden; background: transparent;">
               <label class="setting-label" style="flex-shrink: 0;">
                 <span>إدارة الصور (<span id="slides-count">0</span>)</span>
-                <button id="pick-slides-btn" class="btn-blue-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">+ إضافة صور</button>
+                <button id="pick-slides-btn" class="btn-blue-outline" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">+ إضافة صور</button>
               </label>
               <div id="slides-list" class="slides-list" style="flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0;">
                 <div id="empty-state" class="empty-state">
-                  <i data-lucide="image-plus" style="width: 48px; height: 48px; color: #94a3b8; opacity: 0.6;"></i>
-                  <span style="font-size: 1.1rem; color: #64748b; font-weight: bold;">اضغط هنا لإضافة صور</span>
+                  <i data-lucide="image-plus" style="width: 44px; height: 44px; opacity: 0.5;"></i>
+                  <span style="font-size: 1rem; font-weight: 700;">اضغط هنا لإضافة صور</span>
                 </div>
               </div>
             </div>
 
-            <div style="display: flex; gap: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 0.5rem; align-items: flex-end; padding: 1rem;">
-              <div style="flex: 1; display: flex; flex-direction: column; gap: 0.4rem;">
-                <label class="setting-label" style="font-size: 0.8rem; margin: 0;">شاشة الختام</label>
-                <select id="endpage-select" class="input-v2" style="font-size: 0.8rem; padding: 0.5rem; border-radius: 6px;"></select>
+            <div style="display: flex; gap: 0.75rem; border-top: 1px solid var(--border); padding: 0.75rem; align-items: flex-end;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 0.35rem;">
+                <label class="setting-label" style="font-size: 0.78rem; margin: 0;">شاشة الختام</label>
+                <select id="endpage-select" class="input-v2" style="font-size: 0.8rem; padding: 0.45rem;"></select>
               </div>
-
-              <div style="width: 80px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0.4rem;">
-                <label class="setting-label" style="font-size: 0.8rem; margin: 0; text-align: center;">المدة (ث)</label>
-                <input id="slide-duration-input" type="number" class="input-v2 modern-input" value="5" min="2" max="15" style="text-align: center; font-size: 0.9rem; padding: 0.45rem; border-radius: 6px;"/>
+              <div style="width: 78px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0.35rem;">
+                <label class="setting-label" style="font-size: 0.78rem; margin: 0; text-align: center;">المدة (ث)</label>
+                <input id="slide-duration-input" type="number" class="input-v2 modern-input" value="5" min="2" max="15"
+                  style="text-align: center; font-size: 0.88rem; padding: 0.42rem;" />
               </div>
             </div>
-            <div style="padding: 0 1rem; margin-bottom: 1rem;"><span id="endpage-duration-hint" class="muted-text" style="display: block;"></span></div>
+            <div style="padding: 0 0.75rem; margin-bottom: 0.75rem;">
+              <span id="endpage-duration-hint" class="muted-text" style="display: block;"></span>
+            </div>
             <select id="overlay-select" style="display: none;"></select>
           </div>
 
-          <!-- === TAB: TEXT === -->
+          <!-- ══ TAB: TEXT ════════════════════════════════════ -->
           <div id="tab-content-text" style="display: none; overflow-y: auto;">
             <div class="setting-group prop-slider">
-              <label class="setting-label slider-labels">موضع النص من الأسفل <span id="bottom-offset-value" class="accent-text">160px</span></label>
+              <label class="setting-label slider-labels">
+                موضع النص من الأسفل <span id="bottom-offset-value" class="accent-text">160px</span>
+              </label>
               <input id="bottom-offset-input" type="range" class="range-input" min="40" max="280" step="10" value="160" />
             </div>
 
             <div class="setting-group prop-slider">
               <label class="setting-label slider-labels">
                 موضع النص أفقياً
-                <span style="font-size:0.75rem;font-weight:400;color:#6b7280;margin-inline:0.4rem;">يسار ←→ يمين</span>
+                <span style="font-size: 0.72rem; font-weight: 400; color: var(--text-fa); margin-inline: 0.3rem;">يسار ←→ يمين</span>
                 <span id="horizontal-offset-value" class="accent-text">0</span>
               </label>
               <input id="horizontal-offset-input" type="range" class="range-input" min="-30" max="30" step="5" value="0" />
             </div>
 
             <div class="setting-group prop-slider">
-              <label class="setting-label slider-labels">حجم الخط <span id="font-size-value" class="accent-text">46px</span></label>
+              <label class="setting-label slider-labels">
+                حجم الخط <span id="font-size-value" class="accent-text">46px</span>
+              </label>
               <input id="font-size-input" type="range" class="range-input" min="24" max="96" step="2" value="46" />
             </div>
 
             <div class="setting-group prop-field">
               <label class="setting-label">حركة دخول النص</label>
-              <div
-                id="text-animation-buttons"
-                class="animation-preset-grid"
-                role="radiogroup"
-                aria-label="حركة دخول النص"
-              >
-              </div>
+              <div id="text-animation-buttons" class="animation-preset-grid" role="radiogroup" aria-label="حركة دخول النص"></div>
               <label class="parallax-toggle">
                 <input id="parallax-enabled-checkbox" type="checkbox" checked />
                 <span>تفعيل عمق سينمائي بعد الظهور</span>
               </label>
-              <span class="muted-text">يمكن استخدام ++ لتقسيم السطور، و ** ** لتحديد كلمة بطلة.</span>
+              <span class="muted-text" style="margin-top: 0.4rem; display: block;">يمكن استخدام ++ لتقسيم السطور، و ** ** لتحديد كلمة بطلة.</span>
             </div>
 
             <div class="setting-group prop-field">
               <label class="setting-label">لون شريط النص</label>
               <div id="text-preset-buttons" class="color-presets">
                 <button type="button" class="preset-btn preset-orange" data-preset="orange"></button>
-                <button type="button" class="preset-btn preset-red" data-preset="red"></button>
-                <button type="button" class="preset-btn preset-blue" data-preset="blue"></button>
-                <button type="button" class="preset-btn preset-gold" data-preset="gold"></button>
+                <button type="button" class="preset-btn preset-red"    data-preset="red"></button>
+                <button type="button" class="preset-btn preset-blue"   data-preset="blue"></button>
+                <button type="button" class="preset-btn preset-gold"   data-preset="gold"></button>
                 <button type="button" class="preset-btn preset-dark is-active" data-preset="dark"></button>
               </div>
               <select id="text-preset-select" style="display: none;">
@@ -240,90 +578,89 @@
             </div>
           </div>
 
-          <!-- === TAB: AUDIO === -->
+          <!-- ══ TAB: AUDIO ═══════════════════════════════════ -->
           <div id="tab-content-audio" style="display: none; overflow-y: auto;">
-
-            <!-- توليد تعليق صوتي من نص -->
             <div class="setting-group prop-field">
-              <label class="setting-label" style="margin-bottom: 0.6rem;">
+              <label class="setting-label" style="margin-bottom: 0.5rem;">
                 <span>توليد تعليق صوتي</span>
-                <span id="tts-gen-status" class="muted-text" style="font-size: 0.78rem; font-weight: 400;"></span>
+                <span id="tts-gen-status" class="muted-text" style="font-size: 0.76rem; font-weight: 400;"></span>
               </label>
-              <textarea
-                id="voiceover-text-input"
-                class="input-v2"
+              <textarea id="voiceover-text-input" class="input-v2"
                 placeholder="اكتب نص التعليق الصوتي هنا... سيتم توليد صوت لكامل الفيديو"
-                style="min-height: 100px; resize: vertical; line-height: 1.6; font-size: 0.9rem;"
-                dir="auto"
-              ></textarea>
-              <button id="generate-text-voiceover-btn" class="btn-blue" style="margin-top: 0.6rem; width: 100%; padding: 0.65rem; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 8px;">
-                <i data-lucide="mic" style="width: 17px; height: 17px; fill: white;"></i>
+                style="min-height: 100px; resize: vertical; line-height: 1.6; font-size: 0.88rem;" dir="auto">
+              </textarea>
+              <button id="generate-text-voiceover-btn" class="btn-blue"
+                style="margin-top: 0.55rem; width: 100%; padding: 0.6rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: var(--r-sm);">
+                <i data-lucide="mic" style="width: 16px; height: 16px; fill: white;"></i>
                 توليد تعليق صوتي
               </button>
             </div>
 
-            <!-- التعليق الصوتي الحالي -->
             <div class="setting-group prop-field">
-              <label class="setting-label" style="margin-bottom: 1rem;">
+              <label class="setting-label" style="margin-bottom: 0.75rem;">
                 التعليق الصوتي الحالي
-                <span id="voiceover-meta" class="accent-text" style="font-size: 0.8rem;"></span>
+                <span id="voiceover-meta" class="accent-text" style="font-size: 0.78rem;"></span>
               </label>
-              <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
-                <button id="pick-voiceover-btn" class="btn-blue-outline" style="padding: 0.4rem 1rem;">إرفاق ملف</button>
-                <span id="voiceover-filename" class="muted-text" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;" title="بدون تعليق صوتی">بدون</span>
-                <button id="clear-voiceover-btn" class="btn-secondary" style="padding: 0.2rem 0.5rem;"><i data-lucide="x" style="width: 16px; height: 16px;"></i></button>
+              <div style="display: flex; gap: 0.45rem; align-items: center; margin-bottom: 0.75rem;">
+                <button id="pick-voiceover-btn" class="btn-blue-outline" style="padding: 0.38rem 0.9rem; font-size: 0.84rem;">إرفاق ملف</button>
+                <span id="voiceover-filename" class="muted-text"
+                  style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;" title="بدون تعليق صوتي">بدون</span>
+                <button id="clear-voiceover-btn" class="btn-secondary" style="padding: 0.2rem 0.45rem;">
+                  <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                </button>
               </div>
-              <label class="setting-label slider-labels">مستوى التعليق <span id="voiceover-volume-value" class="accent-text">100%</span></label>
+              <label class="setting-label slider-labels">
+                مستوى التعليق <span id="voiceover-volume-value" class="accent-text">100%</span>
+              </label>
               <input id="voiceover-volume-input" type="range" class="range-input" min="0" max="100" step="1" value="100" />
             </div>
 
             <div class="setting-group prop-field">
               <label class="setting-label">الموسيقى</label>
-              <select id="music-select" class="input-v2" style="margin-bottom: 1rem;"></select>
-              <label class="setting-label slider-labels">مستوى الموسيقى <span id="music-volume-value" class="accent-text">50%</span></label>
+              <select id="music-select" class="input-v2" style="margin-bottom: 0.75rem;"></select>
+              <label class="setting-label slider-labels">
+                مستوى الموسيقى <span id="music-volume-value" class="accent-text">50%</span>
+              </label>
               <input id="music-volume-input" type="range" class="range-input" min="0" max="100" step="1" value="50" />
             </div>
           </div>
 
-          <!-- === TAB: CONTENT GENERATION === -->
+          <!-- ══ TAB: CONTENT GENERATION ══════════════════════ -->
           <div id="tab-content-generate" style="display: none; overflow-y: auto; flex-direction: column; gap: 0; padding-bottom: 1rem;">
 
-            <!-- Section A: Inputs -->
+            <!-- Section A: Generation inputs -->
             <div class="setting-group prop-field" style="border-color: #a7f3d0; background: #f0fdf4; margin-bottom: 0.75rem;">
-              <label class="setting-label" style="color: #065f46; font-size: 0.85rem; margin-bottom: 0.75rem;">
-                <i data-lucide="sparkles" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-left:4px;"></i>
+              <label class="setting-label" style="color: #065f46; font-size: 0.84rem; margin-bottom: 0.6rem;">
+                <i data-lucide="sparkles" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-left: 4px;"></i>
                 توليد شرائح + سكريبت صوتي
               </label>
 
-              <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.65rem;">
-                <label style="font-size:0.82rem;font-weight:600;color:#374151;">النص أو الموضوع</label>
+              <div style="display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text);">النص أو الموضوع</label>
                 <textarea id="content-topic-input" class="input-v2" rows="4"
-                  placeholder="الصق هنا الموضوع أو المقالة بالعربية... سيولّد جيميناي شرائح + سكريبت صوتي منفصل"
-                  style="resize:vertical;font-size:0.88rem;direction:rtl;line-height:1.6;"></textarea>
+                  placeholder="الصق هنا الموضوع أو المقالة بالعربية..."
+                  style="resize: vertical; font-size: 0.86rem; direction: rtl; line-height: 1.6;"></textarea>
               </div>
 
-              <div style="display:flex;gap:0.6rem;margin-bottom:0.65rem;">
-                <div style="width:80px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">عدد الشرائح</label>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 0.6rem;">
+                <div style="width: 76px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label style="font-size: 0.76rem; font-weight: 600; color: var(--text);">عدد الشرائح</label>
                   <input id="content-slide-count" type="number" class="input-v2"
-                    value="10" min="3" max="30"
-                    style="text-align:center;font-size:0.9rem;padding:0.45rem;" />
+                    value="10" min="3" max="30" style="text-align: center; font-size: 0.88rem; padding: 0.42rem;" />
                 </div>
-                <div style="width:80px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">ثواني/شريحة</label>
+                <div style="width: 76px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label style="font-size: 0.76rem; font-weight: 600; color: var(--text);">ثواني/شريحة</label>
                   <input id="content-slide-duration" type="number" class="input-v2"
-                    value="8" min="4" max="20"
-                    style="text-align:center;font-size:0.9rem;padding:0.45rem;" />
+                    value="8" min="4" max="20" style="text-align: center; font-size: 0.88rem; padding: 0.42rem;" />
                 </div>
-                <div style="width:80px;flex-shrink:0;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">كلمات/شريحة</label>
+                <div style="width: 76px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label style="font-size: 0.76rem; font-weight: 600; color: var(--text);">كلمات/شريحة</label>
                   <input id="content-max-words" type="number" class="input-v2"
-                    value="18" min="8" max="30"
-                    style="text-align:center;font-size:0.9rem;padding:0.45rem;" />
+                    value="18" min="8" max="30" style="text-align: center; font-size: 0.88rem; padding: 0.42rem;" />
                 </div>
-                <div style="flex:1;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">أسلوب</label>
-                  <select id="content-style-select" class="input-v2" style="font-size:0.82rem;padding:0.45rem;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label style="font-size: 0.76rem; font-weight: 600; color: var(--text);">أسلوب</label>
+                  <select id="content-style-select" class="input-v2" style="font-size: 0.8rem; padding: 0.42rem;">
                     <option value="وثائقي">وثائقي</option>
                     <option value="إخباري">إخباري</option>
                     <option value="قانوني">قانوني</option>
@@ -332,9 +669,9 @@
                     <option value="سوشيال ميديا">سوشيال ميديا</option>
                   </select>
                 </div>
-                <div style="flex:1;display:flex;flex-direction:column;gap:0.3rem;">
-                  <label style="font-size:0.78rem;font-weight:600;color:#374151;">نمط النص</label>
-                  <select id="content-preset-select" class="input-v2" style="font-size:0.82rem;padding:0.45rem;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label style="font-size: 0.76rem; font-weight: 600; color: var(--text);">نمط النص</label>
+                  <select id="content-preset-select" class="input-v2" style="font-size: 0.8rem; padding: 0.42rem;">
                     <option value="automatic">automatic</option>
                     <option value="news-ledger">news-ledger</option>
                     <option value="layered-title">layered-title</option>
@@ -346,148 +683,154 @@
               </div>
 
               <button id="generate-content-btn" class="btn-blue"
-                style="width:100%;padding:0.6rem;font-size:0.95rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;border-radius:8px;">
-                <i data-lucide="sparkles" style="width:17px;height:17px;"></i>
+                style="width: 100%; padding: 0.58rem; font-size: 0.93rem; display: flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: var(--r-sm);">
+                <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i>
                 توليد الشرائح والسكريبت
               </button>
               <span id="content-generate-status" class="muted-text"
-                style="font-size:0.78rem;margin-top:0.35rem;display:block;text-align:center;min-height:1.2em;"></span>
+                style="font-size: 0.76rem; margin-top: 0.3rem; display: block; text-align: center; min-height: 1.2em;"></span>
             </div>
 
-            <!-- Section B: Script preview + audio -->
-            <div class="setting-group prop-field" style="background:#f8fafc;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                <label style="font-size:0.82rem;font-weight:700;color:#334155;">سكريبت التعليق الصوتي</label>
+            <!-- Section B: Script preview -->
+            <div class="setting-group prop-field" style="background: var(--surface-r);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text);">سكريبت التعليق الصوتي</label>
                 <button id="copy-script-btn" class="btn-secondary"
-                  style="padding:0.2rem 0.6rem;font-size:0.75rem;display:flex;align-items:center;gap:0.3rem;">
-                  <i data-lucide="copy" style="width:13px;height:13px;"></i> نسخ
+                  style="padding: 0.18rem 0.55rem; font-size: 0.72rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="copy" style="width: 12px; height: 12px;"></i> نسخ
                 </button>
               </div>
               <textarea id="content-script-preview" class="input-v2" rows="7"
                 placeholder="سيظهر السكريبت الصوتي هنا بعد التوليد... يمكنك تعديله قبل توليد الصوت"
-                style="resize:vertical;font-size:0.85rem;direction:rtl;line-height:1.7;color:#374151;background:#fff;"></textarea>
+                style="resize: vertical; font-size: 0.84rem; direction: rtl; line-height: 1.7; color: var(--text); background: var(--surface);"></textarea>
 
               <button id="generate-script-audio-btn" class="btn-blue"
-                style="width:100%;margin-top:0.6rem;padding:0.6rem;font-size:0.95rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;border-radius:8px;background:#7c3aed!important;">
-                <i data-lucide="mic" style="width:17px;height:17px;"></i>
+                style="width: 100%; margin-top: 0.55rem; padding: 0.58rem; font-size: 0.93rem; display: flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: var(--r-sm); background: #7c3aed !important;">
+                <i data-lucide="mic" style="width: 15px; height: 15px;"></i>
                 توليد صوت السكريبت
               </button>
               <span id="script-audio-status" class="muted-text"
-                style="font-size:0.78rem;margin-top:0.35rem;display:block;text-align:center;min-height:1.2em;"></span>
+                style="font-size: 0.76rem; margin-top: 0.3rem; display: block; text-align: center; min-height: 1.2em;"></span>
             </div>
 
-            <div class="muted-text" style="font-size:0.75rem;padding:0 0.25rem;">
+            <div class="muted-text" style="font-size: 0.72rem; padding: 0 0.25rem; margin-bottom: 0.5rem;">
               مدة الشريحة تُضبط تلقائياً على 8 ثوانٍ. الصور بلاسهولدر يمكن استبدالها لاحقاً.
             </div>
 
             <!-- Section C: Prompt inspector -->
-            <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-              <summary style="padding:0.55rem 0.75rem;font-size:0.78rem;font-weight:600;color:#475569;cursor:pointer;background:#f1f5f9;list-style:none;display:flex;align-items:center;gap:0.4rem;user-select:none;">
-                <i data-lucide="eye" style="width:13px;height:13px;flex-shrink:0;"></i>
+            <details style="border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden;">
+              <summary style="padding: 0.5rem 0.7rem; font-size: 0.76rem; font-weight: 600; color: var(--text-mu); cursor: pointer; background: var(--surface-r); list-style: none; display: flex; align-items: center; gap: 0.35rem; user-select: none;">
+                <i data-lucide="eye" style="width: 12px; height: 12px; flex-shrink: 0;"></i>
                 البرومبتات المُرسَلة
               </summary>
-              <div style="padding:0.75rem;display:flex;flex-direction:column;gap:0.6rem;background:#fff;">
+              <div style="padding: 0.7rem; display: flex; flex-direction: column; gap: 0.55rem; background: var(--surface);">
                 <div>
-                  <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:0.25rem;letter-spacing:0.03em;">
+                  <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mu); margin-bottom: 0.22rem; letter-spacing: 0.03em;">
                     🎙 تعليمات أسلوب الصوت (TTS Style)
                   </div>
-                  <textarea id="prompt-inspector-tts" rows="3" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:ltr;text-align:left;line-height:1.6;font-family:monospace;width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+                  <textarea id="prompt-inspector-tts" rows="3"
+                    style="font-size: 0.73rem; color: var(--text); background: var(--surface-r); border: 1px solid var(--border); border-radius: 5px; padding: 0.45rem 0.55rem; direction: ltr; text-align: left; line-height: 1.6; font-family: var(--font-mono); width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
                 </div>
                 <div>
-                  <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:0.25rem;letter-spacing:0.03em;">
+                  <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mu); margin-bottom: 0.22rem; letter-spacing: 0.03em;">
                     📋 البرومبت النظامي لتوليد المحتوى
                   </div>
-                  <textarea id="prompt-inspector-content" rows="5" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:rtl;line-height:1.6;width:100%;box-sizing:border-box;resize:vertical;max-height:220px;overflow-y:auto;"></textarea>
+                  <textarea id="prompt-inspector-content" rows="5"
+                    style="font-size: 0.73rem; color: var(--text); background: var(--surface-r); border: 1px solid var(--border); border-radius: 5px; padding: 0.45rem 0.55rem; direction: rtl; line-height: 1.6; width: 100%; box-sizing: border-box; resize: vertical; max-height: 220px; overflow-y: auto;"></textarea>
                 </div>
               </div>
             </details>
 
-          </div>
+          </div><!-- end tab-content-generate -->
 
-        </div>
-      </div>
+        </div><!-- end tab-content wrapper -->
+      </div><!-- end right-panel -->
 
-      <!-- LEFT PANEL - PREVIEW & ACTIONS -->
+      <!-- ─── LEFT PANEL — PREVIEW & RENDER ───────────────── -->
       <div class="left-panel panel-center" style="flex: 1.2;">
         <div class="preview-container">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h2 style="font-size: 1.1rem; margin: 0; color: #1e293b;">المعاينة (Preview)</h2>
-            <button id="preview-fullscreen-btn" class="btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: transparent; border: none;"><i data-lucide="maximize" style="width: 16px; height: 16px;"></i> ملء الشاشة</button>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <h2 style="font-size: 1rem; margin: 0; color: var(--text); font-weight: 700;">المعاينة</h2>
+            <button id="preview-fullscreen-btn" class="btn-secondary"
+              style="padding: 0.25rem 0.55rem; font-size: 0.76rem; background: transparent; border: none;">
+              <i data-lucide="maximize" style="width: 14px; height: 14px;"></i> ملء الشاشة
+            </button>
           </div>
 
-          <!-- Player Area -->
-          <div class="preview-stage-outer" style="width:100%; border:none; padding:0; background:transparent;">
-            <div class="preview-stage-container" style="border:none; padding:0; box-shadow:none;">
+          <!-- Stage with dot-grid -->
+          <div class="preview-stage-outer" style="width: 100%;">
+            <div class="preview-stage-container">
               <div id="preview-stage-shell" class="player-wrapper preview-stage-shell-fix">
-                <div id="preview-stage" class="preview-stage" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position:relative; z-index:1;">
+                <div id="preview-stage" class="preview-stage"
+                  style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;">
                   <div id="preview-exact-root" style="width: 100%; height: 100%; position: absolute;"></div>
-                  <i data-lucide="play" stroke-width="1" style="width:48px; height:48px; fill: #334155; opacity: 0.2;"></i>
+                  <i data-lucide="play" stroke-width="1"
+                    style="width: 44px; height: 44px; fill: #c5bdb2; opacity: 0.35;"></i>
                 </div>
-                
-                <!-- Embedded Controls overlay -->
-                <div class="preview-player-ui" style="z-index:10;">
+
+                <div class="preview-player-ui" style="z-index: 10;">
                   <div class="preview-player-bottom">
                     <div class="preview-control-row">
-                      <button id="preview-play-btn" class="preview-icon-btn large">▶</button>
-                      <button id="preview-mute-btn" class="preview-icon-btn">🔊</button>
-                      <span id="preview-time-inline" class="preview-time-inline">00:00 / 00:00</span>
+                      <button id="preview-play-btn"    class="preview-icon-btn large">▶</button>
+                      <button id="preview-mute-btn"    class="preview-icon-btn">🔊</button>
+                      <span   id="preview-time-inline" class="preview-time-inline">00:00 / 00:00</span>
                       <button id="preview-restart-btn" class="preview-icon-btn">↺</button>
                     </div>
-                    <input id="preview-seek" type="range" class="range-input preview-seek" min="0" max="1000" value="0" style="height: 4px;" />
+                    <input id="preview-seek" type="range" class="range-input preview-seek"
+                      min="0" max="1000" value="0" style="height: 4px;" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Piano Keys Visual Effects -->
-          <div class="piano-effects-bar" style="margin-top: 0;">
-            <label class="piano-key-label" title="غبار" style="margin:0; padding:0; background:none; border:none; border-radius:0; height:100%;">
+          <!-- Piano Effects Keys -->
+          <div class="piano-effects-bar">
+            <label class="piano-key-label" title="غبار">
               <input type="checkbox" value="dust" class="effect-checkbox" checked />
               <span class="piano-key-content">غبار</span>
             </label>
-            <label class="piano-key-label" title="إضاءة" style="margin:0; padding:0; background:none; border:none; border-radius:0; border-right:1px solid #e2e8f0; height:100%;">
+            <label class="piano-key-label" title="إضاءة">
               <input type="checkbox" value="light-leak" class="effect-checkbox" checked />
               <span class="piano-key-content">إضاءة</span>
             </label>
-            <label class="piano-key-label" title="بريق" style="margin:0; padding:0; background:none; border:none; border-radius:0; border-right:1px solid #e2e8f0; height:100%;">
+            <label class="piano-key-label" title="بريق">
               <input type="checkbox" value="bokeh" class="effect-checkbox" checked />
               <span class="piano-key-content">بريق</span>
             </label>
-            <label class="piano-key-label" title="خطوط شاشة" style="margin:0; padding:0; background:none; border:none; border-radius:0; border-right:1px solid #e2e8f0; height:100%;">
+            <label class="piano-key-label" title="خطوط شاشة">
               <input type="checkbox" value="scanlines" class="effect-checkbox" />
               <span class="piano-key-content">شبكة</span>
             </label>
-            <label class="piano-key-label" title="تحبيب" style="margin:0; padding:0; background:none; border:none; border-radius:0; border-right:1px solid #e2e8f0; height:100%;">
+            <label class="piano-key-label" title="تحبيب">
               <input type="checkbox" value="grain" class="effect-checkbox" />
               <span class="piano-key-content">حبيبات</span>
             </label>
-            <label class="piano-key-label" title="تظليل" style="margin:0; padding:0; background:none; border:none; border-radius:0; border-right:1px solid #e2e8f0; height:100%;">
+            <label class="piano-key-label" title="تظليل">
               <input type="checkbox" value="vignette" class="effect-checkbox" />
               <span class="piano-key-content">تظليل</span>
             </label>
-            <label class="piano-key-label" title="إطار سينمائي" style="margin:0; padding:0; background:none; border:none; border-radius:0; border-right:1px solid #e2e8f0; height:100%;">
+            <label class="piano-key-label" title="إطار سينمائي">
               <input type="checkbox" value="cinematic-bars" id="cinematic-bars-checkbox" class="effect-checkbox" />
               <span class="piano-key-content">سينمائي</span>
             </label>
           </div>
-        </div>
+        </div><!-- end preview-container -->
 
-        <!-- Render Section & Progress -->
-        <div class="save-section render-zone" style="margin-top:0.5rem; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); padding: 0.75rem 1rem;">
-          
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0px;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-              <h3 id="status-title" style="margin: 0; color: #1e293b; font-size:14px; font-weight: bold;">حفظ الفيديو</h3>
-              <p id="status-text" class="muted-text" style="margin: 0; font-size: 12px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; display: none;">لم يبدأ الحفظ بعد</p>
+        <!-- ─── Render Zone ─────────────────────────────────── -->
+        <div class="save-section render-zone" style="margin-top: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <h3 id="status-title" style="margin: 0; color: var(--text); font-size: 0.88rem; font-weight: 700;">حفظ الفيديو</h3>
+              <p id="status-text" class="muted-text" style="margin: 0; font-size: 0.74rem; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; display: none;">لم يبدأ الحفظ بعد</p>
             </div>
-            
-            <div style="display: flex; align-items: center; gap: 1rem; min-width: 0;">
-              <div id="render-result" class="render-result" style="font-size: 0.8rem; color: #10b981; display: none; align-items: center; gap: 0.3rem; font-weight: 600; white-space: nowrap;"></div>
-              <div style="display: flex; align-items: center; gap: 0.4rem; color: #f59e0b; font-weight: 600; font-size: 0.85rem; flex-shrink: 0;">
-                <i data-lucide="fast-forward" style="width:16px; height:16px; stroke-width: 2;"></i>
-                Turbo Mode
-                <label class="switch" style="margin-right: 0.4rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div id="render-result" class="render-result" style="font-size: 0.78rem; color: var(--success); display: none; align-items: center; gap: 0.25rem; font-weight: 600; white-space: nowrap;"></div>
+              <!-- Turbo toggle -->
+              <div style="display: flex; align-items: center; gap: 0.35rem; color: #f59e0b; font-weight: 700; font-size: 0.82rem; flex-shrink: 0;">
+                <i data-lucide="fast-forward" style="width: 14px; height: 14px; stroke-width: 2;"></i>
+                Turbo
+                <label class="switch" style="margin-right: 0.25rem;">
                   <input type="checkbox" id="turbo-render-checkbox" checked />
                   <span class="slider"></span>
                 </label>
@@ -495,219 +838,142 @@
             </div>
           </div>
 
-          <div style="display: flex; gap: 1rem; align-items: center;">
-            <div class="progress-box" style="flex: 1; padding: 0.5rem 0.75rem; margin: 0; display: flex; align-items: center; gap: 1rem; border-radius: 8px;">
-              <strong id="progress-percent" class="accent-text" style="flex-shrink: 0; width: 35px; text-align: right; margin-left: 0.2rem;">0%</strong>
-              <div class="progress-track" style="flex: 1; height: 6px; margin: 0;">
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <!-- Progress bar -->
+            <div class="progress-box">
+              <strong id="progress-percent" class="accent-text"
+                style="flex-shrink: 0; width: 34px; text-align: right; font-size: 0.82rem;">0%</strong>
+              <div class="progress-track">
                 <div id="progress-fill" class="progress-fill"></div>
               </div>
-              <span id="progress-label" class="muted-text" style="flex-shrink: 0; width: 140px; text-align: left; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">في الانتظار...</span>
+              <span id="progress-label" class="muted-text"
+                style="flex-shrink: 0; width: 130px; text-align: left; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">في الانتظار...</span>
             </div>
 
-            <div class="render-actions" style="display: flex; gap: 0.25rem; margin: 0; flex-shrink: 0; height: 100%;">
-              <button id="render-btn" class="btn-blue" style="padding: 0.4rem 1.25rem; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 1rem; height: auto; min-height: 48px;">
-                <i data-lucide="download" style="width: 18px; height: 18px; fill: white;"></i> حفظ الفيديو
+            <!-- Action buttons -->
+            <div class="render-actions" style="display: flex; gap: 0.25rem; flex-shrink: 0;">
+              <button id="render-btn" class="btn-blue"
+                style="padding: 0.4rem 1.1rem; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.92rem; min-height: 44px;">
+                <i data-lucide="download" style="width: 16px; height: 16px; fill: white;"></i> حفظ الفيديو
               </button>
-              <button id="cancel-render-btn" class="btn-blue" style="display: none; background-color: #ef4444 !important; padding: 0.4rem 1.25rem; border-radius: 6px; align-items: center; justify-content: center; gap: 0.5rem; font-size: 1rem; height: auto; min-height: 48px;">
+              <button id="cancel-render-btn" class="btn-blue"
+                style="display: none; background-color: var(--danger) !important; padding: 0.4rem 1.1rem; border-radius: var(--r-sm); align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.92rem; min-height: 44px;">
                 إيقاف
               </button>
               <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                <button id="refresh-assets-btn" class="btn-secondary" style="padding: 0.2rem 0.5rem; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center;" title="تحديث الأصول">
-                  <i data-lucide="rotate-cw" style="width: 14px; height: 14px; color: #64748b;"></i>
+                <button id="refresh-assets-btn" class="btn-secondary"
+                  style="padding: 0.22rem 0.5rem; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center;" title="تحديث الأصول">
+                  <i data-lucide="rotate-cw" style="width: 13px; height: 13px;"></i>
                 </button>
-                <button id="open-output-btn" class="btn-secondary" style="padding: 0.2rem 0.5rem; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center;" title="المخرجات">
-                  <i data-lucide="folder-open" style="width: 14px; height: 14px; color: #10b981;"></i>
+                <button id="open-output-btn" class="btn-secondary"
+                  style="padding: 0.22rem 0.5rem; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center;" title="المخرجات">
+                  <i data-lucide="folder-open" style="width: 13px; height: 13px; color: var(--success);"></i>
                 </button>
               </div>
             </div>
           </div>
-        </div>        
-      </div>
-    </div>
+        </div>
+      </div><!-- end left-panel -->
+    </div><!-- end main-content -->
 
-    <!-- Settings Modal -->
+    <!-- ═══ SETTINGS MODAL ═══════════════════════════════════ -->
     <style>
       #settings-modal-overlay {
-        display: flex;
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.65);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        z-index: 9998;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s ease;
+        display: flex; position: fixed; inset: 0;
+        background: rgba(28, 26, 24, 0.55);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        z-index: 9998; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
       }
-      #settings-modal-overlay.is-active {
-        opacity: 1;
-        pointer-events: auto;
-      }
+      #settings-modal-overlay.is-active { opacity: 1; pointer-events: auto; }
       .settings-modal-card {
-        background: #ffffff;
-        border-radius: 16px;
-        width: 520px;
-        max-width: 95vw;
-        max-height: 90vh;
+        background: #ffffff; border-radius: 18px;
+        width: 520px; max-width: 95vw; max-height: 90vh;
         overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        transform: translateY(16px) scale(0.98);
-        transition: transform 0.25s cubic-bezier(.34,1.56,.64,1);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.1);
+        transform: translateY(18px) scale(0.97);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         direction: rtl;
       }
       #settings-modal-overlay.is-active .settings-modal-card {
         transform: translateY(0) scale(1);
       }
       .settings-modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.25rem 1.5rem 1rem;
-        border-bottom: 1px solid #e2e8f0;
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 1;
-        border-radius: 16px 16px 0 0;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.2rem 1.5rem 0.9rem;
+        border-bottom: 1px solid #e8e3da;
+        position: sticky; top: 0; background: #fff; z-index: 1;
+        border-radius: 18px 18px 0 0;
       }
       .settings-modal-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin: 0;
+        font-size: 1.05rem; font-weight: 700; color: #1c1a18;
+        display: flex; align-items: center; gap: 0.5rem; margin: 0;
       }
       .settings-modal-close {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #94a3b8;
-        padding: 0.3rem;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        transition: color 0.2s, background 0.2s;
-        font-family: inherit;
+        background: none; border: none; cursor: pointer; color: #a89f96;
+        padding: 0.28rem; border-radius: 6px; display: flex; align-items: center;
+        transition: color 0.2s, background 0.2s; font-family: inherit;
       }
-      .settings-modal-close:hover { color: #1e293b; background: #f1f5f9; }
-      .settings-modal-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+      .settings-modal-close:hover { color: #1c1a18; background: #f4f1ec; }
+      .settings-modal-body { padding: 1.2rem 1.5rem; display: flex; flex-direction: column; gap: 1.1rem; }
       .settings-section {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1rem 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+        background: #faf8f4; border: 1px solid #e8e3da; border-radius: 10px;
+        padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.7rem;
       }
       .settings-section-title {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin: 0;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.76rem; font-weight: 700; color: #7a736a;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        margin: 0; padding-bottom: 0.45rem; border-bottom: 1px solid #e8e3da;
       }
-      .settings-row {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-      }
-      .settings-row label {
-        font-size: 0.88rem;
-        font-weight: 600;
-        color: #334155;
-      }
-      .settings-row .hint {
-        font-size: 0.78rem;
-        color: #94a3b8;
-        margin-top: 0.2rem;
-      }
-      .api-key-wrapper {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-      }
-      .api-key-wrapper .input-v2 { flex: 1; font-family: monospace; font-size: 0.85rem; letter-spacing: 0.02em; }
+      .settings-row { display: flex; flex-direction: column; gap: 0.32rem; }
+      .settings-row label { font-size: 0.86rem; font-weight: 600; color: #1c1a18; }
+      .settings-row .hint { font-size: 0.76rem; color: #a89f96; margin-top: 0.18rem; }
+      .api-key-wrapper { display: flex; gap: 0.45rem; align-items: center; }
+      .api-key-wrapper .input-v2 { flex: 1; font-family: var(--font-mono, monospace); font-size: 0.83rem; }
       .btn-icon-toggle {
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 0.6rem;
-        cursor: pointer;
-        color: #64748b;
-        display: flex;
-        align-items: center;
-        transition: all 0.2s;
-        flex-shrink: 0;
+        background: #f4f1ec; border: 1px solid #d4ccbf; border-radius: 6px;
+        padding: 0.55rem; cursor: pointer; color: #7a736a;
+        display: flex; align-items: center; transition: all 0.2s; flex-shrink: 0;
       }
-      .btn-icon-toggle:hover { background: #e2e8f0; color: #1e293b; }
+      .btn-icon-toggle:hover { background: #e8e3da; color: #1c1a18; }
       .settings-status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        font-size: 0.78rem;
-        font-weight: 600;
-        padding: 0.25rem 0.6rem;
-        border-radius: 20px;
-        margin-top: 0.25rem;
+        display: inline-flex; align-items: center; gap: 0.32rem;
+        font-size: 0.76rem; font-weight: 600;
+        padding: 0.22rem 0.55rem; border-radius: 20px; margin-top: 0.22rem;
       }
-      .settings-status-badge.ok { background: #d1fae5; color: #065f46; }
+      .settings-status-badge.ok      { background: #d1fae5; color: #065f46; }
       .settings-status-badge.missing { background: #fee2e2; color: #991b1b; }
       .settings-modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        padding: 1rem 1.5rem;
-        border-top: 1px solid #e2e8f0;
-        position: sticky;
-        bottom: 0;
-        background: #fff;
-        border-radius: 0 0 16px 16px;
+        display: flex; justify-content: flex-end; gap: 0.65rem;
+        padding: 0.9rem 1.5rem; border-top: 1px solid #e8e3da;
+        position: sticky; bottom: 0; background: #fff; border-radius: 0 0 18px 18px;
       }
-      .voice-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
-      }
+      .voice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.45rem; }
       .voice-card {
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0.6rem 0.8rem;
-        cursor: pointer;
-        transition: all 0.15s;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
+        border: 2px solid #e8e3da; border-radius: 8px; padding: 0.55rem 0.75rem;
+        cursor: pointer; transition: all 0.15s; background: #fff;
+        display: flex; flex-direction: column; gap: 0.18rem;
       }
-      .voice-card:hover { border-color: #93c5fd; background: #eff6ff; }
-      .voice-card.is-selected { border-color: #3b82f6; background: #eff6ff; }
-      .voice-card .voice-name { font-weight: 700; font-size: 0.9rem; color: #1e293b; }
-      .voice-card .voice-desc { font-size: 0.75rem; color: #64748b; }
+      .voice-card:hover { border-color: #a7d3b2; background: #eaf3ec; }
+      .voice-card.is-selected { border-color: #5a9a6a; background: #eaf3ec; }
+      .voice-card .voice-name { font-weight: 700; font-size: 0.88rem; color: #1c1a18; }
+      .voice-card .voice-desc { font-size: 0.73rem; color: #7a736a; }
     </style>
 
     <div id="settings-modal-overlay">
       <div class="settings-modal-card">
         <div class="settings-modal-header">
           <h2 class="settings-modal-title">
-            <i data-lucide="settings" style="width:18px;height:18px;color:#3b82f6;"></i>
+            <i data-lucide="settings" style="width: 17px; height: 17px; color: #5a9a6a;"></i>
             إعدادات البرنامج
           </h2>
           <button class="settings-modal-close" id="settings-modal-close-btn">
-            <i data-lucide="x" style="width:20px;height:20px;"></i>
+            <i data-lucide="x" style="width: 18px; height: 18px;"></i>
           </button>
         </div>
 
         <div class="settings-modal-body">
-
-          <!-- API Key Section -->
+          <!-- API Key -->
           <div class="settings-section">
             <p class="settings-section-title">مفتاح API توليد الصوت</p>
             <div class="settings-row">
@@ -715,15 +981,15 @@
               <div class="api-key-wrapper">
                 <input id="settings-api-key" type="password" class="input-v2" placeholder="AIza..." autocomplete="off" spellcheck="false" />
                 <button class="btn-icon-toggle" id="toggle-api-key-visibility" title="إظهار/إخفاء المفتاح">
-                  <i data-lucide="eye" style="width:16px;height:16px;" id="eye-icon"></i>
+                  <i data-lucide="eye" style="width: 15px; height: 15px;" id="eye-icon"></i>
                 </button>
               </div>
-              <span class="hint">يُستخدم لتوليد التعليق الصوتي عبر Gemini TTS. احصل على مفتاحك من <span style="color:#3b82f6;">aistudio.google.com</span></span>
+              <span class="hint">احصل على مفتاحك من <span style="color: #5a9a6a;">aistudio.google.com</span></span>
               <div id="api-key-status"></div>
             </div>
           </div>
 
-          <!-- TTS Model Section -->
+          <!-- TTS Model -->
           <div class="settings-section">
             <p class="settings-section-title">موديل التوليد الصوتي</p>
             <div class="settings-row">
@@ -737,13 +1003,13 @@
             <div class="settings-row">
               <label for="settings-tts-style-prompt">تعليمات أسلوب الصوت (Voice Style)</label>
               <textarea id="settings-tts-style-prompt" class="input-v2" rows="3"
-                style="resize: vertical; font-size: 0.82rem; line-height: 1.5; direction: ltr; text-align: left;"
+                style="resize: vertical; font-size: 0.8rem; line-height: 1.5; direction: ltr; text-align: left;"
                 placeholder="Premium commercial. Dynamic pacing—starts intrigued, ends punchy..."></textarea>
-              <span class="hint">تُرسَل قبل النص لتوجيه أسلوب الصوت. تُطبَّق على كل عمليات توليد الصوت.</span>
+              <span class="hint">تُرسَل قبل النص لتوجيه أسلوب الصوت.</span>
             </div>
           </div>
 
-          <!-- Voice Selection Section -->
+          <!-- Voice Selection -->
           <div class="settings-section">
             <p class="settings-section-title">الصوت المستخدم للتعليق</p>
             <div class="settings-row">
@@ -785,9 +1051,9 @@
             </div>
           </div>
 
-          <!-- Content Generation Settings -->
+          <!-- Content Generation -->
           <div class="settings-section">
-            <p class="settings-section-title">إعدادات توليد المحتوى (محتوى)</p>
+            <p class="settings-section-title">إعدادات توليد المحتوى</p>
             <div class="settings-row">
               <label for="settings-content-model">موديل توليد المحتوى</label>
               <select id="settings-content-model" class="input-v2">
@@ -795,154 +1061,102 @@
                 <option value="gemini-2.5-pro">gemini-2.5-pro (جودة أعلى)</option>
                 <option value="gemini-2.5-flash-thinking-exp">gemini-2.5-flash-thinking-exp (تفكير أعمق)</option>
               </select>
-              <span class="hint">يُستخدم لتوليد نصوص الإنفوجراف من الموضوع.</span>
             </div>
             <div class="settings-row">
               <label for="settings-content-system-prompt">البرومبت النظامي لتوليد المحتوى</label>
-              <textarea id="settings-content-system-prompt" class="input-v2" rows="6" style="resize: vertical; font-size: 0.82rem; line-height: 1.5; direction: rtl;" placeholder="أدخل التعليمات النظامية لجيميناي..."></textarea>
-              <span class="hint">يحدد أسلوب وقواعد توليد نصوص الشرائح. يمكن تعديله حسب احتياجات قناتك.</span>
+              <textarea id="settings-content-system-prompt" class="input-v2" rows="6"
+                style="resize: vertical; font-size: 0.8rem; line-height: 1.5; direction: rtl;"
+                placeholder="أدخل التعليمات النظامية لجيميناي..."></textarea>
+              <span class="hint">يحدد أسلوب وقواعد توليد نصوص الشرائح.</span>
             </div>
           </div>
-
-        </div>
+        </div><!-- end settings-modal-body -->
 
         <div class="settings-modal-footer">
-          <button id="settings-cancel-btn" class="btn-secondary" style="padding: 0.6rem 1.25rem;">إلغاء</button>
-          <button id="settings-save-btn" class="btn-blue" style="padding: 0.6rem 1.5rem; font-size: 1rem;">
-            <i data-lucide="save" style="width:16px;height:16px;display:inline;margin-left:0.4rem;"></i>
+          <button id="settings-cancel-btn" class="btn-secondary" style="padding: 0.55rem 1.1rem;">إلغاء</button>
+          <button id="settings-save-btn" class="btn-blue" style="padding: 0.55rem 1.4rem; font-size: 0.95rem;">
+            <i data-lucide="save" style="width: 14px; height: 14px; display: inline; margin-left: 0.35rem;"></i>
             حفظ الإعدادات
           </button>
         </div>
       </div>
-    </div>
+    </div><!-- end settings-modal-overlay -->
 
-    <!-- Modal Portals -->
+    <!-- ═══ SUCCESS MODAL ════════════════════════════════════ -->
     <style>
       #success-modal-overlay {
-        display: flex;
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.65);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease;
+        display: flex; position: fixed; inset: 0;
+        background: rgba(28, 26, 24, 0.55);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        z-index: 9999; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
       }
-      #success-modal-overlay.is-active {
-        opacity: 1;
-        pointer-events: auto;
-      }
+      #success-modal-overlay.is-active { opacity: 1; pointer-events: auto; }
       .success-modal-card {
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 2.25rem 2rem;
-        text-align: center;
-        max-width: 420px;
-        width: 90vw;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        transform: translateY(20px) scale(0.97);
-        transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+        background: #ffffff; border-radius: 18px;
+        padding: 2.2rem 2rem; text-align: center;
+        max-width: 420px; width: 90vw;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.1);
+        transform: translateY(22px) scale(0.96);
+        transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
         direction: rtl;
       }
       #success-modal-overlay.is-active .success-modal-card {
         transform: translateY(0) scale(1);
       }
       .modal-check-icon {
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, #10b981, #059669);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.25rem;
-        box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+        width: 58px; height: 58px;
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1.1rem; box-shadow: 0 4px 16px rgba(22,163,74,0.30);
       }
       .modal-check-icon svg { color: white; }
-      .modal-title-text { font-size: 1.3rem; font-weight: 700; color: #1e293b; margin: 0 0 0.4rem; }
-      .modal-sub-text { color: #64748b; font-size: 0.9rem; margin: 0 0 1.25rem; }
+      .modal-title-text { font-size: 1.25rem; font-weight: 700; color: #1c1a18; margin: 0 0 0.35rem; }
+      .modal-sub-text   { color: #7a736a; font-size: 0.88rem; margin: 0 0 1.1rem; }
       .modal-path-box {
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        padding: 0.65rem 0.9rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        font-size: 0.78rem;
-        word-break: break-all;
-        color: #475569;
-        text-align: left;
-        direction: ltr;
-        font-family: monospace;
+        background: #faf8f4; border: 1px solid #e8e3da;
+        padding: 0.6rem 0.85rem; border-radius: 8px; margin-bottom: 1.4rem;
+        font-size: 0.76rem; word-break: break-all; color: #7a736a;
+        text-align: left; direction: ltr; font-family: var(--font-mono, monospace);
       }
-      .modal-btns { display: flex; gap: 0.75rem; justify-content: center; }
+      .modal-btns { display: flex; gap: 0.65rem; justify-content: center; }
       .modal-btn-preview {
-        flex: 1;
-        background: #3b82f6;
-        color: white;
-        border: none;
-        padding: 0.65rem 1rem;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        transition: background 0.2s;
-        font-family: inherit;
+        flex: 1; background: #5a9a6a; color: white; border: none;
+        padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+        transition: filter 0.2s; font-family: var(--font, inherit);
       }
-      .modal-btn-preview:hover { background: #2563eb; }
+      .modal-btn-preview:hover { filter: brightness(1.08); }
       .modal-btn-folder {
-        flex: 1;
-        background: #f8fafc;
-        color: #1e293b;
-        border: 1px solid #cbd5e1;
-        padding: 0.65rem 1rem;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        transition: all 0.2s;
-        font-family: inherit;
+        flex: 1; background: #faf8f4; color: #1c1a18; border: 1px solid #d4ccbf;
+        padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+        transition: all 0.2s; font-family: var(--font, inherit);
       }
-      .modal-btn-folder:hover { background: #e2e8f0; border-color: #94a3b8; }
+      .modal-btn-folder:hover { background: #e8e3da; border-color: #c5bdb2; }
       .modal-dismiss-link {
-        margin-top: 1rem;
-        display: block;
-        color: #94a3b8;
-        font-size: 0.8rem;
-        cursor: pointer;
-        background: none;
-        border: none;
-        font-family: inherit;
-        transition: color 0.2s;
+        margin-top: 0.9rem; display: block; color: #a89f96; font-size: 0.78rem;
+        cursor: pointer; background: none; border: none;
+        font-family: var(--font, inherit); transition: color 0.2s;
       }
-      .modal-dismiss-link:hover { color: #64748b; }
+      .modal-dismiss-link:hover { color: #7a736a; }
     </style>
+
     <div id="success-modal-overlay">
       <div class="success-modal-card">
         <div class="modal-check-icon">
-          <i data-lucide="check" style="width: 30px; height: 30px;"></i>
+          <i data-lucide="check" style="width: 28px; height: 28px;"></i>
         </div>
-        <h2 class="modal-title-text">تم حفظ الفيديو بنجاح! 🎉</h2>
+        <h2 class="modal-title-text">تم حفظ الفيديو بنجاح!</h2>
         <p class="modal-sub-text">الفيديو النهائي جاهز وتم حفظه في مجلد المخرجات.</p>
         <div id="modal-file-path" class="modal-path-box"></div>
         <div class="modal-btns">
           <button id="modal-preview-btn" class="modal-btn-preview">
-            <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
+            <i data-lucide="play-circle" style="width: 15px; height: 15px;"></i>
             معاينة الفيديو
           </button>
           <button id="modal-reveal-btn" class="modal-btn-folder">
-            <i data-lucide="folder-open" style="width:16px;height:16px;"></i>
+            <i data-lucide="folder-open" style="width: 15px; height: 15px;"></i>
             فتح المجلد
           </button>
         </div>
@@ -950,7 +1164,12 @@
       </div>
     </div>
 
-  </div>
+    <!-- Toast container -->
+    <div id="toast-container"
+      style="position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; flex-direction: column; gap: 0.45rem; align-items: center; pointer-events: none;">
+    </div>
+
+  </div><!-- end v2-root -->
 
   <script src="./generated/preview-player.js"></script>
   <script src="./app.js" defer></script>
@@ -958,19 +1177,30 @@
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
 
-      // Tab Switcher logic
+      // ── Tab indicator animation ───────────────────────────
+      function moveTabIndicator(tabEl) {
+        const indicator = document.getElementById('tabs-indicator');
+        if (!indicator || !tabEl) return;
+        const header = tabEl.closest('.tabs-header');
+        if (!header) return;
+        const headerRect = header.getBoundingClientRect();
+        const tabRect   = tabEl.getBoundingClientRect();
+        indicator.style.width = tabRect.width + 'px';
+        indicator.style.left  = (tabRect.left - headerRect.left) + 'px';
+      }
+
+      // ── Tab Switcher ──────────────────────────────────────
       const tabs = document.querySelectorAll('.tab-btn');
       const panels = {
-        'tab-content-slides': document.getElementById('tab-content-slides'),
-        'tab-content-text': document.getElementById('tab-content-text'),
-        'tab-content-audio': document.getElementById('tab-content-audio'),
+        'tab-content-slides':   document.getElementById('tab-content-slides'),
+        'tab-content-text':     document.getElementById('tab-content-text'),
+        'tab-content-audio':    document.getElementById('tab-content-audio'),
         'tab-content-generate': document.getElementById('tab-content-generate'),
       };
-
       const panelDisplayMode = {
-        'tab-content-slides': 'flex',
-        'tab-content-text': 'block',
-        'tab-content-audio': 'block',
+        'tab-content-slides':   'flex',
+        'tab-content-text':     'block',
+        'tab-content-audio':    'block',
         'tab-content-generate': 'flex',
       };
 
@@ -979,12 +1209,10 @@
           if (!panel) return;
           panel.style.display = id === target ? panelDisplayMode[id] : 'none';
         });
-
         if (target === 'tab-content-slides') {
           requestAnimationFrame(() => {
             const slidesList = document.getElementById('slides-list');
             if (slidesList) {
-              // Keep Chromium from losing the scroll container after flex tabs are restored.
               slidesList.style.overflowY = 'auto';
               slidesList.style.minHeight = '0';
             }
@@ -995,29 +1223,40 @@
       tabs.forEach(tab => {
         tab.addEventListener('click', () => {
           tabs.forEach(t => t.classList.remove('active'));
-
           tab.classList.add('active');
+          moveTabIndicator(tab);
           const target = tab.getAttribute('data-target');
           showTabPanel(target);
-
           if (target === 'tab-content-generate' && typeof updatePromptInspector === 'function') {
             updatePromptInspector();
           }
         });
       });
-      
-      // We also handle UI synchronization updates for effects keys
-      const effectCheckboxes = document.querySelectorAll('.effect-checkbox');
-      effectCheckboxes.forEach(chk => {
+
+      // Position indicator on load (after layout is ready)
+      requestAnimationFrame(() => {
+        const activeTab = document.querySelector('.tab-btn.active');
+        moveTabIndicator(activeTab);
+      });
+
+      // ── Effect checkboxes (piano keys) ───────────────────
+      document.querySelectorAll('.effect-checkbox').forEach(chk => {
         chk.addEventListener('change', (e) => {
-          if(e.target.checked) {
-            e.target.nextElementSibling.style.color = '#3b82f6';
-            e.target.nextElementSibling.style.fontWeight = 'bold';
+          const label = e.target.nextElementSibling;
+          if (!label) return;
+          if (e.target.checked) {
+            label.style.color = 'var(--accent)';
+            label.style.fontWeight = 'bold';
           } else {
-            e.target.nextElementSibling.style.color = '#64748b';
-            e.target.nextElementSibling.style.fontWeight = '600';
+            label.style.color = '';
+            label.style.fontWeight = '';
           }
         });
+        // Sync initial checked state
+        if (chk.checked) {
+          const label = chk.nextElementSibling;
+          if (label) { label.style.color = 'var(--accent)'; label.style.fontWeight = 'bold'; }
+        }
       });
     });
   </script>
