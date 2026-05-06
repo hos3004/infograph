@@ -436,6 +436,8 @@ function buildExactPreviewInputProps() {
       imageUrl: slide.fileUrl,
       text: slide.text || '',
       isMuted: slide.isMuted !== false,
+      voiceoverUrl: slide.voiceoverUrl || null,
+      voiceoverDurationMs: slide.voiceoverDurationMs || 0,
     })),
     overlay: overlayAsset ? overlayAsset.url : null,
     music: musicAsset ? musicAsset.url : null,
@@ -1466,6 +1468,8 @@ function buildRenderPayload() {
       imagePath: slide.imagePath,
       text: slide.text || '',
       isMuted: slide.isMuted !== false,
+      voiceoverPath: slide.voiceoverPath || null,
+      voiceoverDurationMs: slide.voiceoverDurationMs || 0,
     })),
     overlay: overlayAsset ? overlayAsset.path : null,
     music: musicAsset ? musicAsset.path : null,
@@ -1538,6 +1542,7 @@ async function handleGenerateVoiceovers() {
           ...slide,
           voiceoverText: updated.voiceoverText,
           voiceoverUrl: updated.voiceoverUrl,
+          voiceoverPath: updated.voiceoverPath || slide.voiceoverPath || null,
           voiceoverDurationMs: updated.voiceoverDurationMs,
         };
       });

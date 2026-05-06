@@ -172,6 +172,11 @@ async function renderVideo(payload) {
   const slideMediaKeys = normalized.slides.map((slide, index) =>
     registerMediaFile(fileMap, `slide-${index}`, slide.imagePath),
   );
+  const slideVoiceoverKeys = normalized.slides.map((slide, index) =>
+    slide.voiceoverPath
+      ? registerMediaFile(fileMap, `slide-vo-${index}`, slide.voiceoverPath)
+      : null,
+  );
   const overlayMediaKey = normalized.overlayPath
     ? registerMediaFile(fileMap, 'overlay', normalized.overlayPath)
     : null;
@@ -188,19 +193,16 @@ async function renderVideo(payload) {
   const mediaServer = await startMediaServer(fileMap);
 
   try {
-    // ── Diagnostic logging ──────────────────────────────────────────
-    console.log('DIAG', `musicPath=${normalized.musicPath}`);
-    console.log('DIAG', `musicMediaKey=${musicMediaKey}`);
-    console.log('DIAG', `musicUrl=${musicMediaKey ? mediaServer.urlFor(musicMediaKey) : 'NULL'}`);
-    console.log('DIAG', `musicVolume=${normalized.musicVolume}`);
-    // ────────────────────────────────────────────────────────────────
-
     const inputProps = {
       slides: normalized.slides.map((slide, index) => ({
         id: slide.id,
         imageUrl: mediaServer.urlFor(slideMediaKeys[index]),
         text: slide.text,
         isMuted: slide.isMuted,
+        voiceoverUrl: slideVoiceoverKeys[index]
+          ? mediaServer.urlFor(slideVoiceoverKeys[index])
+          : null,
+        voiceoverDurationMs: slide.voiceoverDurationMs || 0,
       })),
       overlay: overlayMediaKey ? mediaServer.urlFor(overlayMediaKey) : null,
       music: musicMediaKey ? mediaServer.urlFor(musicMediaKey) : null,

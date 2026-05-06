@@ -30,6 +30,8 @@ function normalizeSlides(slides) {
       imagePath: slide.imagePath,
       text: typeof slide.text === 'string' ? slide.text : '',
       isMuted: slide.isMuted !== false,
+      voiceoverPath: typeof slide.voiceoverPath === 'string' ? slide.voiceoverPath : null,
+      voiceoverDurationMs: Number(slide.voiceoverDurationMs) || 0,
     }));
 }
 

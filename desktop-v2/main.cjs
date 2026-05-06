@@ -474,6 +474,7 @@ ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
         ...slide,
         voiceoverText: narrationText,
         voiceoverUrl: toFileUrl(filePath),
+        voiceoverPath: filePath,
         voiceoverDurationMs: durationMs,
       });
     } catch (err) {
