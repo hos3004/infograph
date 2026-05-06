@@ -2021,11 +2021,12 @@ if (generateTextVoiceoverBtn) {
 
 async function handleGenerateContentSlides() {
   const topicInput = document.getElementById('content-topic-input');
-  const slideCountSelect = document.getElementById('content-slide-count');
+  const slideCountInput = document.getElementById('content-slide-count');
   const contentStyleSelect = document.getElementById('content-style-select');
   const presetSelect = document.getElementById('content-preset-select');
   const btn = document.getElementById('generate-content-btn');
   const status = document.getElementById('content-generate-status');
+  const scriptPreview = document.getElementById('content-script-preview');
 
   const topic = topicInput ? topicInput.value.trim() : '';
   if (!topic) {
@@ -2033,12 +2034,13 @@ async function handleGenerateContentSlides() {
     return;
   }
 
-  const count = slideCountSelect ? Number(slideCountSelect.value) : 8;
+  const count = slideCountInput ? Number(slideCountInput.value) || 10 : 10;
   const contentStyle = contentStyleSelect ? contentStyleSelect.value : 'informative';
-  const textPreset = presetSelect ? presetSelect.value : 'live-reveal-dot';
+  const textPreset = presetSelect ? presetSelect.value : 'automatic';
 
   if (btn) { btn.disabled = true; btn.textContent = 'جاري التوليد...'; }
   if (status) status.textContent = 'جاري الاتصال بـ Gemini...';
+  if (scriptPreview) { scriptPreview.value = ''; scriptPreview.placeholder = 'جاري توليد السكريبت...'; }
 
   try {
     const result = await window.desktopApi.generateContentSlides({
@@ -2056,30 +2058,89 @@ async function handleGenerateContentSlides() {
       throw new Error('لم يتم الحصول على شرائح من Gemini');
     }
 
-    state.slides = [...state.slides, ...result.slides];
-    if (!state.selectedSlideId && result.slides.length > 0) {
-      state.selectedSlideId = result.slides[0].id;
+    // Replace all slides with newly generated ones (fresh content session)
+    state.slides = result.slides;
+    state.selectedSlideId = result.slides[0].id;
+
+    // Set slide duration to ~8 seconds to match voiceover script timing
+    state.slideDurationInSeconds = 8;
+    const durationInput = document.getElementById('slide-duration-input');
+    if (durationInput) durationInput.value = 8;
+
+    // Apply text preset if not automatic
+    if (textPreset && textPreset !== 'automatic') {
+      state.textPreset = textPreset;
+      const presetEl = document.getElementById('text-preset-select');
+      if (presetEl) presetEl.value = textPreset;
     }
 
-    // Switch to slides tab so user can see the result
-    document.querySelectorAll('.tab-btn').forEach((tabBtn) => {
-      tabBtn.classList.toggle('active', tabBtn.dataset.target === 'tab-content-slides');
-    });
-    document.querySelectorAll('[id^="tab-content-"]').forEach((panel) => {
-      const isSlides = panel.id === 'tab-content-slides';
-      panel.style.display = isSlides ? 'flex' : 'none';
-    });
+    // Populate the editable script textarea
+    if (scriptPreview) {
+      scriptPreview.value = result.fullScript || result.slides.map((s) => s.voiceoverText || s.text || '').join('\n\n');
+      scriptPreview.placeholder = 'السكريبت الكامل للتعليق الصوتي...';
+    }
 
     renderSlides();
-    if (status) status.textContent = `✅ تم توليد ${result.slides.length} شريحة بنجاح`;
-    setStatus('المحتوى', `تم إضافة ${result.slides.length} شريحة من Gemini`);
+    renderPreviewFrame();
+    if (status) status.textContent = `✅ تم توليد ${result.slides.length} شريحة — راجع السكريبت أدناه`;
+    setStatus('المحتوى', `تم إنشاء ${result.slides.length} شريحة من Gemini`);
   } catch (err) {
     if (status) status.textContent = `❌ ${err.message}`;
+    if (scriptPreview) scriptPreview.placeholder = 'السكريبت الكامل للتعليق الصوتي...';
     setStatus('خطأ', err.message);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> توليد الشرائح بالذكاء الاصطناعي';
+      btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> توليد الشرائح والسكريبت';
+      if (window.lucide) lucide.createIcons({ nodes: [btn.querySelector('[data-lucide]')] });
+    }
+  }
+}
+
+async function handleGenerateScriptVoiceover() {
+  const btn = document.getElementById('generate-script-audio-btn');
+  const statusEl = document.getElementById('script-audio-status');
+  const scriptPreview = document.getElementById('content-script-preview');
+
+  const scriptText = scriptPreview ? scriptPreview.value.trim() : '';
+  if (!scriptText) {
+    if (statusEl) statusEl.textContent = 'السكريبت فارغ — يرجى توليد الشرائح أولاً';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري التوليد...'; }
+  if (statusEl) statusEl.textContent = 'جاري توليد الصوت...';
+
+  try {
+    const result = await window.desktopApi.generateSingleVoiceover({
+      text: scriptText,
+      apiKey: state.settings.geminiApiKey || '',
+      model: state.settings.ttsModel || 'gemini-2.5-flash-preview-tts',
+      voice: state.settings.ttsVoice || 'Kore',
+    });
+
+    if (!result.success) throw new Error(result.error || 'فشل توليد الصوت');
+
+    state.voiceover = result.voiceoverPath;
+    state.voiceoverDurationMs = result.durationMs || 0;
+
+    const label = 'سكريبت المحتوى';
+    if (elements.voiceoverFilename) {
+      elements.voiceoverFilename.textContent = label;
+      elements.voiceoverFilename.title = scriptText.slice(0, 80);
+    }
+    updateVoiceoverMeta();
+    renderPreviewFrame();
+
+    if (statusEl) statusEl.textContent = `✅ تم التوليد — ${(state.voiceoverDurationMs / 1000).toFixed(1)}ث`;
+    setStatus('اكتمل', 'تم توليد صوت السكريبت بنجاح');
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `❌ ${err.message}`;
+    setStatus('خطأ', err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="mic" style="width:16px;height:16px;"></i> توليد صوت الاسكريبت';
       if (window.lucide) lucide.createIcons({ nodes: [btn.querySelector('[data-lucide]')] });
     }
   }
@@ -2088,6 +2149,24 @@ async function handleGenerateContentSlides() {
 const generateContentBtn = document.getElementById('generate-content-btn');
 if (generateContentBtn) {
   generateContentBtn.addEventListener('click', handleGenerateContentSlides);
+}
+
+const generateScriptAudioBtn = document.getElementById('generate-script-audio-btn');
+if (generateScriptAudioBtn) {
+  generateScriptAudioBtn.addEventListener('click', handleGenerateScriptVoiceover);
+}
+
+const copyScriptBtn = document.getElementById('copy-script-btn');
+if (copyScriptBtn) {
+  copyScriptBtn.addEventListener('click', () => {
+    const scriptPreview = document.getElementById('content-script-preview');
+    if (!scriptPreview || !scriptPreview.value.trim()) return;
+    navigator.clipboard.writeText(scriptPreview.value).then(() => {
+      const orig = copyScriptBtn.textContent;
+      copyScriptBtn.textContent = '✓ تم النسخ';
+      setTimeout(() => { copyScriptBtn.textContent = orig; }, 1500);
+    });
+  });
 }
 
 // ─── Settings Modal ────────────────────────────────────────────────────────

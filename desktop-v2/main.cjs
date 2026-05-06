@@ -560,14 +560,20 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
   } catch {}
 
   if (!apiKey) {
-    apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
+    apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_TTS_API_KEY || null;
   }
   if (!apiKey) {
     return { success: false, error: 'مفتاح Gemini API مفقود. أضفه في إعدادات البرنامج (⚙️).' };
   }
 
   contentModel = contentModel || 'gemini-2.5-flash';
-  systemPrompt = systemPrompt || 'أنت محرر إنفوجراف تلفزيوني عربي محترف ومنتج تحريري. مهمتك تحويل موضوع عربي طويل إلى عدد محدد من شرائح الإنفوجراف. كل شريحة يجب أن تكون مناسبة للرسوم المتحركة وشاشات التلفزيون وأنماط حركة النص. اكتب بعربية مصقولة وموجزة ومنظمة بصرياً. أعد JSON فقط بدون أي نص توضيحي.';
+
+  const defaultSystemPrompt = `أنت كاتب إنفوجراف تلفزيوني عربي محترف ومحرر تلفزيوني وكاتب سكريبت صوتي.
+مهمتك: تحويل الموضوعات العربية إلى شرائح إنفوجراف مرئية موجزة وسكريبت تعليق صوتي منفصل.
+نص الشاشة يجب أن يكون قصيراً ومرئياً. السكريبت الصوتي يجب أن يكون سلساً ومهنياً بأسلوب التلفزيون العربي.
+أعد JSON صارماً فقط بدون أي نص خارجه.`;
+
+  systemPrompt = systemPrompt || defaultSystemPrompt;
 
   const count = Math.min(30, Math.max(3, Number(slideCount) || 10));
   const preset = textPreset === 'automatic' ? 'news-ledger' : textPreset;
@@ -576,23 +582,28 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
 
 أسلوب المحتوى: ${contentStyle}
 نمط حركة النص المُفضَّل: ${preset}
+مدة التعليق الصوتي المستهدفة: حوالي 8 ثوانٍ لكل شريحة.
+طول السكريبت الصوتي لكل شريحة: من 18 إلى 24 كلمة عربية.
 
-يجب أن يحتوي نص كل شريحة على أربعة أجزاء مفصولة بـ "++":
-1. كيكر / تصنيف
-2. عنوان رئيسي قوي
-3. شرح مختصر
-4. سؤال أو جملة خاتمة
+لكل شريحة أعد:
+- title: عنوان داخلي مختصر
+- text: نص الشاشة — أربعة أجزاء قصيرة مفصولة بـ "++" (كيكر ++ عنوان ++ شرح ++ خلاصة)
+- voiceoverText: سكريبت صوتي عربي طبيعي من 18-24 كلمة لمدة ~8 ثوانٍ، لا يكرر نص الشاشة حرفياً
+- imagePrompt: وصف بالإنجليزية لصورة سينمائية واقعية بدون نص أو شعارات
+- visualHint: توجيه بصري عربي مختصر
 
-أعد بالضبط هذا الشكل من JSON:
+أعد هذا الشكل من JSON فقط:
 {
   "slides": [
     {
-      "title": "عنوان داخلي مختصر",
-      "text": "الجزء1 ++ الجزء2 ++ الجزء3 ++ الجزء4",
-      "imagePrompt": "English prompt for a realistic cinematic visual, no text",
-      "visualHint": "توجيه بصري عربي اختياري"
+      "title": "عنوان داخلي",
+      "text": "كيكر ++ عنوان قوي ++ شرح مختصر ++ خلاصة",
+      "voiceoverText": "سكريبت صوتي عربي طبيعي من 18-24 كلمة لهذه الشريحة.",
+      "imagePrompt": "English cinematic realistic visual prompt, no text, no logos",
+      "visualHint": "توجيه بصري"
     }
-  ]
+  ],
+  "fullScript": "سكريبت الشريحة 1.\n\nسكريبت الشريحة 2.\n\n..."
 }
 
 الموضوع:
@@ -614,11 +625,11 @@ ${topic}`;
     const result = await res.json();
     if (!res.ok) throw new Error(result?.error?.message || `HTTP ${res.status}`);
 
-    const raw = result.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!raw) throw new Error('لم يُرجع النموذج أي محتوى');
+    const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error('لم يُرجع النموذج أي محتوى');
 
     let parsed;
-    try { parsed = JSON.parse(raw); } catch { throw new Error('فشل تحليل JSON من النموذج'); }
+    try { parsed = JSON.parse(rawText); } catch { throw new Error('فشل تحليل JSON من النموذج'); }
 
     const slides = Array.isArray(parsed.slides) ? parsed.slides : [];
     if (slides.length === 0) throw new Error('لم تُولَّد أي شرائح');
@@ -626,19 +637,23 @@ ${topic}`;
     const placeholderPath = ensurePlaceholderPng();
     const placeholderUrl = toFileUrl(placeholderPath);
 
-    return {
-      success: true,
-      slides: slides.map((s, i) => ({
-        id: `content-${Date.now()}-${i}`,
-        title: s.title || '',
-        text: s.text || '',
-        imagePrompt: s.imagePrompt || '',
-        visualHint: s.visualHint || '',
-        imagePath: placeholderPath,
-        fileUrl: placeholderUrl,
-        isMuted: true,
-      })),
-    };
+    const now = Date.now();
+    const mappedSlides = slides.map((s, i) => ({
+      id: `generated-${now}-${i}`,
+      title: s.title || '',
+      text: s.text || '',
+      voiceoverText: s.voiceoverText || '',
+      imagePrompt: s.imagePrompt || '',
+      visualHint: s.visualHint || '',
+      imagePath: placeholderPath,
+      fileUrl: placeholderUrl,
+      isMuted: true,
+    }));
+
+    const fullScript = parsed.fullScript ||
+      mappedSlides.map((s) => s.voiceoverText).filter(Boolean).join('\n\n');
+
+    return { success: true, slides: mappedSlides, fullScript };
   } catch (err) {
     return { success: false, error: err?.message || String(err) };
   }
