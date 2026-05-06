@@ -79,6 +79,7 @@ export const Slide: React.FC<{
   textPreset: TextPreset;
   textAnimationType: TextAnimationPreset;
   parallaxEnabled?: boolean;
+  textHorizontalOffset?: number;
 }> = ({
   slide,
   index,
@@ -88,6 +89,7 @@ export const Slide: React.FC<{
   textPreset,
   textAnimationType,
   parallaxEnabled,
+  textHorizontalOffset,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -157,6 +159,7 @@ export const Slide: React.FC<{
             textPreset={textPreset}
             textAnimationType={textAnimationType}
             parallaxEnabled={parallaxEnabled}
+            textHorizontalOffset={textHorizontalOffset}
           />
         </>
       ) : null}

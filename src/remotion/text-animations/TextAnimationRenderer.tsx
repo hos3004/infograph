@@ -25,6 +25,7 @@ export type TextAnimationCommonProps = {
   bottomOffset: number;
   fontSize: number;
   textPreset: TextPreset;
+  textHorizontalOffset?: number;
 };
 
 type Props = TextAnimationCommonProps & {
@@ -34,6 +35,7 @@ type Props = TextAnimationCommonProps & {
 
 export const TextAnimationRenderer: React.FC<Props> = (props) => {
   const preset = props.textAnimationType ?? 'motion-blur';
+  const shift = props.textHorizontalOffset ?? 0;
 
   const rendered = (() => {
     switch (preset) {
@@ -86,13 +88,22 @@ export const TextAnimationRenderer: React.FC<Props> = (props) => {
   })();
 
   return (
-    <ParallaxDepth
-      frame={props.frame}
-      enabled={props.parallaxEnabled ?? true}
-      delayFrames={52}
-      strength={1}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        transform: shift !== 0 ? `translateX(${shift}%)` : undefined,
+        pointerEvents: 'none',
+      }}
     >
-      {rendered}
-    </ParallaxDepth>
+      <ParallaxDepth
+        frame={props.frame}
+        enabled={props.parallaxEnabled ?? true}
+        delayFrames={52}
+        strength={1}
+      >
+        {rendered}
+      </ParallaxDepth>
+    </div>
   );
 };

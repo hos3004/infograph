@@ -18,6 +18,7 @@ export const MainComposition: React.FC<CompositionProps> = ({
   textAnimationType = 'motion-blur',
   parallaxEnabled = true,
   cinematicBarSize,
+  textHorizontalOffset = 0,
   voiceover,
   musicVolume = 50,
   voiceoverVolume = 100,
@@ -71,6 +72,7 @@ export const MainComposition: React.FC<CompositionProps> = ({
               textPreset={textPreset ?? 'dark'}
               textAnimationType={textAnimationType ?? 'motion-blur'}
               parallaxEnabled={parallaxEnabled ?? true}
+              textHorizontalOffset={textHorizontalOffset ?? 0}
             />
             {slide.voiceoverUrl && (
               <Audio

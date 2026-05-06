@@ -217,6 +217,7 @@ async function renderVideo(payload) {
       textAnimationType: normalized.textAnimationType,
       parallaxEnabled: normalized.parallaxEnabled,
       cinematicBarSize: normalized.cinematicBarSize,
+      textHorizontalOffset: normalized.textHorizontalOffset,
       musicVolume: normalized.musicVolume,
       voiceoverVolume: normalized.voiceoverVolume,
     };

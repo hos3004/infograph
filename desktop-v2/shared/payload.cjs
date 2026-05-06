@@ -77,6 +77,7 @@ function normalizeRenderPayload(paths, payload) {
     textAnimationType: ALLOWED_TEXT_ANIMATIONS.has(payload.textAnimationType) ? payload.textAnimationType : 'motion-blur',
     parallaxEnabled: payload.parallaxEnabled !== false,
     cinematicBarSize: normalizeNumber(payload.cinematicBarSize, 6),
+    textHorizontalOffset: normalizeNumber(payload.textHorizontalOffset, 0),
     musicVolume: normalizeNumber(payload.musicVolume, 50),
     voiceoverVolume: normalizeNumber(payload.voiceoverVolume, 100),
   };

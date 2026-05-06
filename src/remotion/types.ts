@@ -51,10 +51,11 @@ export type CompositionProps = {
   endPageDurationFrames: number;
 
   // Text appearance (applies to ALL slides)
-  textBottomOffset: number;  // px from bottom in 1920x1080 space (default 160 = safe for TV ticker)
-  textFontSize: number;      // px (default 46)
-  textPreset: TextPreset;    // color preset
+  textBottomOffset: number;      // px from bottom in 1920x1080 space (default 160)
+  textFontSize: number;          // px (default 46)
+  textPreset: TextPreset;        // color preset
   textAnimationType?: TextAnimationPreset;
   parallaxEnabled?: boolean;
   cinematicBarSize?: number;
+  textHorizontalOffset?: number; // % shift left/right from default position (default 0)
 };

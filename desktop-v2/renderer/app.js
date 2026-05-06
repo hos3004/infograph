@@ -65,6 +65,7 @@ const state = {
   cinematicBarSize: 6,
   textFontSize: 65,
   textBottomOffset: 160,
+  textHorizontalOffset: 0,
   slideDurationInSeconds: 5,
   endPageDurationFrames: 0,
   endPageDurationSource: '',
@@ -102,6 +103,8 @@ const elements = {
   fontSizeValue: document.getElementById('font-size-value'),
   bottomOffsetInput: document.getElementById('bottom-offset-input'),
   bottomOffsetValue: document.getElementById('bottom-offset-value'),
+  horizontalOffsetInput: document.getElementById('horizontal-offset-input'),
+  horizontalOffsetValue: document.getElementById('horizontal-offset-value'),
   slideDurationInput: document.getElementById('slide-duration-input'),
   pickSlidesBtn: document.getElementById('pick-slides-btn'),
   refreshAssetsBtn: document.getElementById('refresh-assets-btn'),
@@ -323,6 +326,15 @@ function syncTextSettingsUi() {
   elements.fontSizeInput.value = String(state.textFontSize);
   elements.textPresetSelect.value = state.textPreset;
 
+  if (elements.horizontalOffsetInput) {
+    elements.horizontalOffsetInput.value = String(state.textHorizontalOffset);
+    const hv = state.textHorizontalOffset;
+    if (elements.horizontalOffsetValue) {
+      elements.horizontalOffsetValue.textContent = hv === 0 ? '0' : (hv > 0 ? `+${hv}` : `${hv}`);
+    }
+    updateRangeVisual(elements.horizontalOffsetInput);
+  }
+
   [elements.bottomOffsetInput, elements.fontSizeInput].forEach(updateRangeVisual);
 
   elements.textPresetButtons.forEach((button) => {
@@ -465,6 +477,7 @@ function buildExactPreviewInputProps() {
     textFontSize: Number(state.textFontSize || 46),
     textPreset: state.textPreset,
     textAnimationType: state.textAnimationType || 'motion-blur',
+    textHorizontalOffset: Number(state.textHorizontalOffset || 0),
     parallaxEnabled: state.parallaxEnabled !== false,
     cinematicBarSize: Number(state.cinematicBarSize || 6),
     musicVolume: Number(state.musicVolume),
@@ -1012,6 +1025,7 @@ function renderPreviewFrame() {
       previewRefs.textGradient.style.display = '';
       previewRefs.textWrap.style.display = '';
       previewRefs.textWrap.style.bottom = `${bottomOffsetPercent}%`;
+      previewRefs.textWrap.style.transform = state.textHorizontalOffset ? `translateX(${state.textHorizontalOffset}%)` : '';
       previewRefs.textBar.textContent = activeLayer.slide.text;
       previewRefs.textBar.style.backgroundColor = preset.bg;
       previewRefs.textBar.style.color = preset.color;
@@ -1499,6 +1513,7 @@ function buildRenderPayload() {
     textFontSize: Number(state.textFontSize),
     textPreset: state.textPreset,
     textAnimationType: state.textAnimationType || 'motion-blur',
+    textHorizontalOffset: Number(state.textHorizontalOffset || 0),
     parallaxEnabled: state.parallaxEnabled !== false,
     cinematicBarSize: Number(state.cinematicBarSize || 6),
     turboMode: document.getElementById('turbo-render-checkbox')?.checked || false,
@@ -1913,6 +1928,14 @@ elements.bottomOffsetInput.addEventListener('input', (event) => {
   syncTextSettingsUi();
   renderPreviewFrame();
 });
+
+if (elements.horizontalOffsetInput) {
+  elements.horizontalOffsetInput.addEventListener('input', (event) => {
+    state.textHorizontalOffset = Number(event.target.value);
+    syncTextSettingsUi();
+    renderPreviewFrame();
+  });
+}
 
 elements.slideDurationInput.addEventListener('input', (event) => {
   state.slideDurationInSeconds = Number(event.target.value);

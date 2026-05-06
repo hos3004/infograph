@@ -16233,6 +16233,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
   var import_jsx_runtime21 = __toESM(require_jsx_runtime());
   var TextAnimationRenderer = (props) => {
     const preset = props.textAnimationType ?? "motion-blur";
+    const shift = props.textHorizontalOffset ?? 0;
     const rendered = (() => {
       switch (preset) {
         case "typewriter":
@@ -16269,13 +16270,24 @@ Check that all your Remotion packages are on the same version. If your dependenc
       }
     })();
     return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
-      ParallaxDepth,
+      "div",
       {
-        frame: props.frame,
-        enabled: props.parallaxEnabled ?? true,
-        delayFrames: 52,
-        strength: 1,
-        children: rendered
+        style: {
+          position: "absolute",
+          inset: 0,
+          transform: shift !== 0 ? `translateX(${shift}%)` : void 0,
+          pointerEvents: "none"
+        },
+        children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+          ParallaxDepth,
+          {
+            frame: props.frame,
+            enabled: props.parallaxEnabled ?? true,
+            delayFrames: 52,
+            strength: 1,
+            children: rendered
+          }
+        )
       }
     );
   };
@@ -16339,7 +16351,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
     textFontSize,
     textPreset,
     textAnimationType,
-    parallaxEnabled
+    parallaxEnabled,
+    textHorizontalOffset
   }) => {
     const frame = useCurrentFrame();
     const { durationInFrames } = useVideoConfig();
@@ -16408,7 +16421,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
                 fontSize: textFontSize,
                 textPreset,
                 textAnimationType,
-                parallaxEnabled
+                parallaxEnabled,
+                textHorizontalOffset
               }
             )
           ] }) : null,
@@ -16610,6 +16624,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
     textAnimationType = "motion-blur",
     parallaxEnabled = true,
     cinematicBarSize,
+    textHorizontalOffset = 0,
     voiceover,
     musicVolume = 50,
     voiceoverVolume = 100
@@ -16645,7 +16660,8 @@ Check that all your Remotion packages are on the same version. If your dependenc
                   textFontSize: textFontSize ?? 46,
                   textPreset: textPreset ?? "dark",
                   textAnimationType: textAnimationType ?? "motion-blur",
-                  parallaxEnabled: parallaxEnabled ?? true
+                  parallaxEnabled: parallaxEnabled ?? true,
+                  textHorizontalOffset: textHorizontalOffset ?? 0
                 }
               ),
               slide.voiceoverUrl && /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(

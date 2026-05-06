@@ -21,6 +21,7 @@ const defaultProps: CompositionProps = {
   textPreset:       'orange',
   textAnimationType: 'live-reveal-dot',
   parallaxEnabled: true,
+  textHorizontalOffset: 0,
 };
 
 export const RemotionRoot: React.FC = () => {
