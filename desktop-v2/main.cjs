@@ -317,6 +317,31 @@ ipcMain.handle('desktop:reveal-in-folder', async (_event, targetPath) => shell.s
 
 ipcMain.handle('desktop:open-file', async (_event, targetPath) => shell.openPath(targetPath));
 
+function getSettingsPath() {
+  return path.join(app.getPath('userData'), 'infograph-settings.json');
+}
+
+ipcMain.handle('desktop:get-settings', async () => {
+  try {
+    const settingsPath = getSettingsPath();
+    if (!fs.existsSync(settingsPath)) return {};
+    const raw = fs.readFileSync(settingsPath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+});
+
+ipcMain.handle('desktop:save-settings', async (_event, settings) => {
+  try {
+    const settingsPath = getSettingsPath();
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
