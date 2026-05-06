@@ -168,9 +168,13 @@ function parseSampleRate(mimeType) {
   return Number.isFinite(rate) && rate > 0 ? rate : 24000;
 }
 
-async function callGeminiTts(text, { apiKey, ttsModel, voiceName }) {
+const DEFAULT_TTS_STYLE_PROMPT = 'Premium commercial. Dynamic pacing—starts intrigued, ends punchy. Tone is polished, persuasive, and inviting.';
+
+async function callGeminiTts(text, { apiKey, ttsModel, voiceName, stylePrompt }) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const promptVariants = [`Read aloud: ${text}`, `Say in a clear neutral voice: ${text}`];
+  const style = (stylePrompt && stylePrompt.trim()) ? stylePrompt.trim() : DEFAULT_TTS_STYLE_PROMPT;
+  const ttsInstruction = `${style}\n\nRead aloud: ${text}`;
+  const promptVariants = [ttsInstruction, `Read aloud: ${text}`];
 
   for (const ttsPrompt of promptVariants) {
     const res = await fetch(endpoint, {
@@ -539,6 +543,7 @@ ipcMain.handle('desktop:generate-single-voiceover', async (_event, payload) => {
     voiceName = 'Charon',
     ttsModel = 'gemini-2.5-flash-preview-tts',
     apiKey: payloadKey,
+    stylePrompt: payloadStylePrompt,
   } = payload;
 
   if (!text || !text.trim()) {
@@ -546,10 +551,13 @@ ipcMain.handle('desktop:generate-single-voiceover', async (_event, payload) => {
   }
 
   let apiKey = payloadKey && payloadKey.trim() ? payloadKey.trim() : null;
-  if (!apiKey) {
+  let stylePrompt = payloadStylePrompt && payloadStylePrompt.trim() ? payloadStylePrompt.trim() : null;
+  if (!apiKey || !stylePrompt) {
     try {
       const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
-      apiKey = JSON.parse(raw).geminiApiKey || null;
+      const saved = JSON.parse(raw);
+      if (!apiKey) apiKey = saved.geminiApiKey || null;
+      if (!stylePrompt) stylePrompt = saved.ttsStylePrompt || null;
     } catch {}
   }
   if (!apiKey) {
@@ -561,7 +569,7 @@ ipcMain.handle('desktop:generate-single-voiceover', async (_event, payload) => {
 
   try {
     const normalizedText = text.replace(/\s+/g, ' ').trim();
-    const { data, mimeType } = await callGeminiTts(normalizedText, { apiKey, ttsModel, voiceName });
+    const { data, mimeType } = await callGeminiTts(normalizedText, { apiKey, ttsModel, voiceName, stylePrompt });
 
     const pcmBuffer = Buffer.from(data, 'base64');
     const sampleRate = parseSampleRate(mimeType);
@@ -733,15 +741,19 @@ ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
     voiceName = 'Charon',
     ttsModel = 'gemini-2.5-flash-preview-tts',
     apiKey: payloadKey,
+    stylePrompt: payloadStylePrompt,
     maxWords = 18,
   } = payload;
 
-  // Resolve API key: payload → settings file → env var
+  // Resolve API key + style prompt: payload → settings file → env var
   let apiKey = payloadKey && payloadKey.trim() ? payloadKey.trim() : null;
-  if (!apiKey) {
+  let stylePrompt = payloadStylePrompt && payloadStylePrompt.trim() ? payloadStylePrompt.trim() : null;
+  if (!apiKey || !stylePrompt) {
     try {
       const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
-      apiKey = JSON.parse(raw).geminiApiKey || null;
+      const saved = JSON.parse(raw);
+      if (!apiKey) apiKey = saved.geminiApiKey || null;
+      if (!stylePrompt) stylePrompt = saved.ttsStylePrompt || null;
     } catch {}
   }
   if (!apiKey) {
@@ -763,8 +775,8 @@ ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
       continue;
     }
     try {
-      const narrationText = buildRuleBasedNarration(slide.text, maxWords);
-      const { data, mimeType } = await callGeminiTts(narrationText, { apiKey, ttsModel, voiceName });
+      const narrationText = slide.voiceoverText?.trim() || buildRuleBasedNarration(slide.text, maxWords);
+      const { data, mimeType } = await callGeminiTts(narrationText, { apiKey, ttsModel, voiceName, stylePrompt });
 
       const pcmBuffer = Buffer.from(data, 'base64');
       const sampleRate = parseSampleRate(mimeType);

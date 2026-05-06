@@ -357,6 +357,29 @@
             <div class="muted-text" style="font-size:0.75rem;padding:0 0.25rem;">
               مدة الشريحة تُضبط تلقائياً على 8 ثوانٍ. الصور بلاسهولدر يمكن استبدالها لاحقاً.
             </div>
+
+            <!-- Section C: Prompt inspector -->
+            <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+              <summary style="padding:0.55rem 0.75rem;font-size:0.78rem;font-weight:600;color:#475569;cursor:pointer;background:#f1f5f9;list-style:none;display:flex;align-items:center;gap:0.4rem;user-select:none;">
+                <i data-lucide="eye" style="width:13px;height:13px;flex-shrink:0;"></i>
+                البرومبتات المُرسَلة
+              </summary>
+              <div style="padding:0.75rem;display:flex;flex-direction:column;gap:0.6rem;background:#fff;">
+                <div>
+                  <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:0.25rem;letter-spacing:0.03em;">
+                    🎙 تعليمات أسلوب الصوت (TTS Style)
+                  </div>
+                  <div id="prompt-inspector-tts" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:ltr;text-align:left;line-height:1.6;white-space:pre-wrap;font-family:monospace;"></div>
+                </div>
+                <div>
+                  <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:0.25rem;letter-spacing:0.03em;">
+                    📋 البرومبت النظامي لتوليد المحتوى
+                  </div>
+                  <div id="prompt-inspector-content" style="font-size:0.75rem;color:#374151;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem 0.6rem;direction:rtl;line-height:1.6;white-space:pre-wrap;max-height:120px;overflow-y:auto;"></div>
+                </div>
+              </div>
+            </details>
+
           </div>
 
         </div>
@@ -689,6 +712,13 @@
               </select>
               <span class="hint">الـ flash أسرع وأوفر. الـ pro أفضل جودة ولكن أبطأ وأغلى.</span>
             </div>
+            <div class="settings-row">
+              <label for="settings-tts-style-prompt">تعليمات أسلوب الصوت (Voice Style)</label>
+              <textarea id="settings-tts-style-prompt" class="input-v2" rows="3"
+                style="resize: vertical; font-size: 0.82rem; line-height: 1.5; direction: ltr; text-align: left;"
+                placeholder="Premium commercial. Dynamic pacing—starts intrigued, ends punchy..."></textarea>
+              <span class="hint">تُرسَل قبل النص لتوجيه أسلوب الصوت. تُطبَّق على كل عمليات توليد الصوت.</span>
+            </div>
           </div>
 
           <!-- Voice Selection Section -->
@@ -947,6 +977,10 @@
           tab.classList.add('active');
           const target = tab.getAttribute('data-target');
           showTabPanel(target);
+
+          if (target === 'tab-content-generate' && typeof updatePromptInspector === 'function') {
+            updatePromptInspector();
+          }
         });
       });
       

@@ -39,10 +39,13 @@ const DEFAULT_SYSTEM_PROMPT = `أنت محرر إخباري متخصص في إن
 - الخلاصة: 5-8 كلمات (الاستنتاج أو الدعوة للتفكير)
 - تجنب التكرار بين الشرائح`;
 
+const DEFAULT_TTS_STYLE_PROMPT = 'Premium commercial. Dynamic pacing—starts intrigued, ends punchy. Tone is polished, persuasive, and inviting.';
+
 const DEFAULT_SETTINGS = {
   geminiApiKey: '',
   ttsModel: 'gemini-2.5-flash-preview-tts',
   ttsVoice: 'Charon',
+  ttsStylePrompt: DEFAULT_TTS_STYLE_PROMPT,
   contentModel: 'gemini-2.5-flash',
   contentSystemPrompt: DEFAULT_SYSTEM_PROMPT,
 };
@@ -1556,6 +1559,7 @@ async function handleGenerateVoiceovers() {
       voiceName: state.settings.ttsVoice || DEFAULT_SETTINGS.ttsVoice,
       ttsModel: state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel,
       apiKey: state.settings.geminiApiKey || '',
+      stylePrompt: state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT,
     };
 
     const data = await window.desktopApi.generateVoiceovers(payload);
@@ -1617,6 +1621,7 @@ async function handleGenerateTextVoiceover() {
       voiceName: state.settings.ttsVoice || DEFAULT_SETTINGS.ttsVoice,
       ttsModel: state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel,
       apiKey: state.settings.geminiApiKey || '',
+      stylePrompt: state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT,
     });
 
     if (!result.success) throw new Error(result.error || 'فشل التوليد');
@@ -1799,6 +1804,7 @@ async function bootstrap() {
   } catch {
     // settings load failure is non-fatal
   }
+  updatePromptInspector();
 
   const bootstrapPayload = await window.desktopApi.bootstrap();
   state.assets = bootstrapPayload.assets;
@@ -2138,8 +2144,9 @@ async function handleGenerateScriptVoiceover() {
     const result = await window.desktopApi.generateSingleVoiceover({
       text: scriptText,
       apiKey: state.settings.geminiApiKey || '',
-      model: state.settings.ttsModel || 'gemini-2.5-flash-preview-tts',
-      voice: state.settings.ttsVoice || 'Kore',
+      ttsModel: state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel,
+      voiceName: state.settings.ttsVoice || DEFAULT_SETTINGS.ttsVoice,
+      stylePrompt: state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT,
     });
 
     if (!result.success) throw new Error(result.error || 'فشل توليد الصوت');
@@ -2192,6 +2199,15 @@ if (copyScriptBtn) {
   });
 }
 
+// ─── Prompt Inspector ─────────────────────────────────────────────────────
+
+function updatePromptInspector() {
+  const ttsEl = document.getElementById('prompt-inspector-tts');
+  const contentEl = document.getElementById('prompt-inspector-content');
+  if (ttsEl) ttsEl.textContent = state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT;
+  if (contentEl) contentEl.textContent = state.settings.contentSystemPrompt || DEFAULT_SYSTEM_PROMPT;
+}
+
 // ─── Settings Modal ────────────────────────────────────────────────────────
 
 function openSettingsModal() {
@@ -2201,10 +2217,12 @@ function openSettingsModal() {
   // Populate fields from state.settings
   const apiKeyInput = document.getElementById('settings-api-key');
   const modelSelect = document.getElementById('settings-tts-model');
+  const ttsStylePromptInput = document.getElementById('settings-tts-style-prompt');
   const contentModelSelect = document.getElementById('settings-content-model');
   const contentSystemPromptInput = document.getElementById('settings-content-system-prompt');
   if (apiKeyInput) apiKeyInput.value = state.settings.geminiApiKey || '';
   if (modelSelect) modelSelect.value = state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel;
+  if (ttsStylePromptInput) ttsStylePromptInput.value = state.settings.ttsStylePrompt || DEFAULT_TTS_STYLE_PROMPT;
   if (contentModelSelect) contentModelSelect.value = state.settings.contentModel || DEFAULT_SETTINGS.contentModel;
   if (contentSystemPromptInput) contentSystemPromptInput.value = state.settings.contentSystemPrompt || DEFAULT_SYSTEM_PROMPT;
 
@@ -2238,6 +2256,7 @@ function updateApiKeyStatus(apiKey) {
 async function saveSettings() {
   const apiKeyInput = document.getElementById('settings-api-key');
   const modelSelect = document.getElementById('settings-tts-model');
+  const ttsStylePromptInput = document.getElementById('settings-tts-style-prompt');
   const selectedVoiceCard = document.querySelector('#voice-selection-grid .voice-card.is-selected');
   const contentModelSelect = document.getElementById('settings-content-model');
   const contentSystemPromptInput = document.getElementById('settings-content-system-prompt');
@@ -2246,6 +2265,7 @@ async function saveSettings() {
     geminiApiKey: apiKeyInput ? apiKeyInput.value.trim() : '',
     ttsModel: modelSelect ? modelSelect.value : DEFAULT_SETTINGS.ttsModel,
     ttsVoice: selectedVoiceCard ? selectedVoiceCard.dataset.voice : DEFAULT_SETTINGS.ttsVoice,
+    ttsStylePrompt: ttsStylePromptInput ? ttsStylePromptInput.value.trim() || DEFAULT_TTS_STYLE_PROMPT : DEFAULT_TTS_STYLE_PROMPT,
     contentModel: contentModelSelect ? contentModelSelect.value : DEFAULT_SETTINGS.contentModel,
     contentSystemPrompt: contentSystemPromptInput ? contentSystemPromptInput.value : DEFAULT_SYSTEM_PROMPT,
   };
@@ -2253,6 +2273,7 @@ async function saveSettings() {
   const result = await window.desktopApi.saveSettings(newSettings);
   if (result.success) {
     state.settings = newSettings;
+    updatePromptInspector();
     closeSettingsModal();
     setStatus('الإعدادات', 'تم حفظ الإعدادات بنجاح');
   } else {
