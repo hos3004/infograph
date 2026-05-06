@@ -65,6 +65,13 @@ const { createDesktopPaths, ensureDesktopDirs } = require('./shared/paths.cjs');
 
 // ─── Voiceover helpers (runs in main process, no HTTP server needed) ──────────
 
+function truncateToWords(text, maxWords) {
+  if (!text) return '';
+  const words = text.trim().split(/\s+/);
+  if (words.length <= maxWords) return text.trim();
+  return words.slice(0, maxWords).join(' ').replace(/[،,]$/, '') + '.';
+}
+
 function buildRuleBasedNarration(slideText, maxWords = 18) {
   const cleanPart = (v) => (v || '').replace(/\s+/g, ' ').trim();
   const parts = slideText.split('++').map(cleanPart).filter(Boolean);
@@ -582,13 +589,14 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
 
 أسلوب المحتوى: ${contentStyle}
 نمط حركة النص المُفضَّل: ${preset}
-مدة التعليق الصوتي المستهدفة: حوالي 8 ثوانٍ لكل شريحة.
-طول السكريبت الصوتي لكل شريحة: من 15 إلى 18 كلمة عربية فقط (لا تتجاوز 18 كلمة).
+
+⚠️ قاعدة صارمة لـ voiceoverText: أقصى عدد مسموح هو 18 كلمة عربية فقط لكل شريحة — لا استثناءات.
+إذا كتبت أكثر من 18 كلمة فستُقطع تلقائياً. اكتب جملة واحدة قصيرة ومكثّفة فقط.
 
 لكل شريحة أعد:
 - title: عنوان داخلي مختصر
 - text: نص الشاشة — أربعة أجزاء قصيرة مفصولة بـ "++" (كيكر ++ عنوان ++ شرح ++ خلاصة)
-- voiceoverText: سكريبت صوتي عربي طبيعي من 15-18 كلمة فقط لمدة ~8 ثوانٍ، لا يكرر نص الشاشة حرفياً
+- voiceoverText: جملة صوتية عربية واحدة، 15 إلى 18 كلمة كحد أقصى، تُعبّر عن جوهر الشريحة بأسلوب إذاعي طبيعي
 - imagePrompt: وصف بالإنجليزية لصورة سينمائية واقعية بدون نص أو شعارات
 - visualHint: توجيه بصري عربي مختصر
 
@@ -637,12 +645,13 @@ ${topic}`;
     const placeholderPath = ensurePlaceholderPng();
     const placeholderUrl = toFileUrl(placeholderPath);
 
+    const VOICEOVER_MAX_WORDS = 18;
     const now = Date.now();
     const mappedSlides = slides.map((s, i) => ({
       id: `generated-${now}-${i}`,
       title: s.title || '',
       text: s.text || '',
-      voiceoverText: s.voiceoverText || '',
+      voiceoverText: truncateToWords(s.voiceoverText || '', VOICEOVER_MAX_WORDS),
       imagePrompt: s.imagePrompt || '',
       visualHint: s.visualHint || '',
       imagePath: placeholderPath,
@@ -650,8 +659,7 @@ ${topic}`;
       isMuted: true,
     }));
 
-    const fullScript = parsed.fullScript ||
-      mappedSlides.map((s) => s.voiceoverText).filter(Boolean).join('\n\n');
+    const fullScript = mappedSlides.map((s) => s.voiceoverText).filter(Boolean).join('\n\n');
 
     return { success: true, slides: mappedSlides, fullScript };
   } catch (err) {
