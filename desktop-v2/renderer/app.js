@@ -27,14 +27,29 @@ const TEXT_ANIMATION_OPTIONS = [
   { value: 'typewriter', label: 'كتابة Typewriter قديمة' },
 ];
 
+const DEFAULT_SYSTEM_PROMPT = `أنت محرر إخباري متخصص في إنتاج الإنفوجراف التلفزيوني باللغة العربية.
+مهمتك: تحويل أي موضوع إلى شرائح إنفوجراف احترافية جاهزة للعرض.
+القواعد:
+- أنتج JSON فقط بدون أي نص خارجه
+- كل شريحة تحتوي حقيقة واحدة واضحة وقوية
+- استخدم صيغة: كيكر ++ عنوان ++ جسم ++ خلاصة (مفصولة بـ ++)
+- الكيكر: 2-3 كلمات (فئة أو موضوع)
+- العنوان: 5-8 كلمات (الفكرة الرئيسية)
+- الجسم: 8-15 كلمة (التفاصيل والبيانات)
+- الخلاصة: 5-8 كلمات (الاستنتاج أو الدعوة للتفكير)
+- تجنب التكرار بين الشرائح`;
+
 const DEFAULT_SETTINGS = {
   geminiApiKey: '',
   ttsModel: 'gemini-2.5-flash-preview-tts',
   ttsVoice: 'Charon',
+  contentModel: 'gemini-2.0-flash',
+  contentSystemPrompt: DEFAULT_SYSTEM_PROMPT,
 };
 
 const state = {
   assets: { overlays: [], music: [], endpage: [] },
+  placeholderPath: null,
   slides: [],
   overlay: '',
   music: '',
@@ -1772,6 +1787,7 @@ async function bootstrap() {
 
   const bootstrapPayload = await window.desktopApi.bootstrap();
   state.assets = bootstrapPayload.assets;
+  state.placeholderPath = bootstrapPayload.placeholderPath || null;
   ensureDesktopFont(bootstrapPayload.fontDataUrl);
   const logoPath = `${bootstrapPayload.assetsDir.replace(/[\\/]+$/, '')}\\logo.png`;
   elements.brandLogo.src = bootstrapPayload.logoDataUrl || window.desktopApi.toFileUrl(logoPath);
@@ -2001,6 +2017,76 @@ if (generateTextVoiceoverBtn) {
   generateTextVoiceoverBtn.addEventListener('click', handleGenerateTextVoiceover);
 }
 
+// ─── Content Generation ───────────────────────────────────────────────────────
+
+async function handleGenerateContentSlides() {
+  const topicInput = document.getElementById('content-topic-input');
+  const slideCountSelect = document.getElementById('content-slide-count');
+  const contentStyleSelect = document.getElementById('content-style-select');
+  const presetSelect = document.getElementById('content-preset-select');
+  const btn = document.getElementById('generate-content-btn');
+  const status = document.getElementById('content-generate-status');
+
+  const topic = topicInput ? topicInput.value.trim() : '';
+  if (!topic) {
+    if (status) status.textContent = 'يرجى كتابة موضوع أو نص أولاً';
+    return;
+  }
+
+  const count = slideCountSelect ? Number(slideCountSelect.value) : 8;
+  const contentStyle = contentStyleSelect ? contentStyleSelect.value : 'informative';
+  const textPreset = presetSelect ? presetSelect.value : 'live-reveal-dot';
+
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري التوليد...'; }
+  if (status) status.textContent = 'جاري الاتصال بـ Gemini...';
+
+  try {
+    const result = await window.desktopApi.generateContentSlides({
+      topic,
+      count,
+      contentStyle,
+      textPreset,
+      apiKey: state.settings.geminiApiKey || '',
+    });
+
+    if (!result.success || !Array.isArray(result.slides) || result.slides.length === 0) {
+      throw new Error('لم يتم الحصول على شرائح من Gemini');
+    }
+
+    state.slides = [...state.slides, ...result.slides];
+    if (!state.selectedSlideId && result.slides.length > 0) {
+      state.selectedSlideId = result.slides[0].id;
+    }
+
+    // Switch to slides tab so user can see the result
+    document.querySelectorAll('.tab-btn').forEach((tabBtn) => {
+      tabBtn.classList.toggle('active', tabBtn.dataset.target === 'tab-content-slides');
+    });
+    document.querySelectorAll('[id^="tab-content-"]').forEach((panel) => {
+      const isSlides = panel.id === 'tab-content-slides';
+      panel.style.display = isSlides ? 'flex' : 'none';
+    });
+
+    renderSlides();
+    if (status) status.textContent = `✅ تم توليد ${result.slides.length} شريحة بنجاح`;
+    setStatus('المحتوى', `تم إضافة ${result.slides.length} شريحة من Gemini`);
+  } catch (err) {
+    if (status) status.textContent = `❌ ${err.message}`;
+    setStatus('خطأ', err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> توليد الشرائح بالذكاء الاصطناعي';
+      if (window.lucide) lucide.createIcons({ nodes: [btn.querySelector('[data-lucide]')] });
+    }
+  }
+}
+
+const generateContentBtn = document.getElementById('generate-content-btn');
+if (generateContentBtn) {
+  generateContentBtn.addEventListener('click', handleGenerateContentSlides);
+}
+
 // ─── Settings Modal ────────────────────────────────────────────────────────
 
 function openSettingsModal() {
@@ -2010,8 +2096,12 @@ function openSettingsModal() {
   // Populate fields from state.settings
   const apiKeyInput = document.getElementById('settings-api-key');
   const modelSelect = document.getElementById('settings-tts-model');
+  const contentModelSelect = document.getElementById('settings-content-model');
+  const contentSystemPromptInput = document.getElementById('settings-content-system-prompt');
   if (apiKeyInput) apiKeyInput.value = state.settings.geminiApiKey || '';
   if (modelSelect) modelSelect.value = state.settings.ttsModel || DEFAULT_SETTINGS.ttsModel;
+  if (contentModelSelect) contentModelSelect.value = state.settings.contentModel || DEFAULT_SETTINGS.contentModel;
+  if (contentSystemPromptInput) contentSystemPromptInput.value = state.settings.contentSystemPrompt || DEFAULT_SYSTEM_PROMPT;
 
   syncVoiceGrid(state.settings.ttsVoice || DEFAULT_SETTINGS.ttsVoice);
   updateApiKeyStatus(state.settings.geminiApiKey);
@@ -2044,11 +2134,15 @@ async function saveSettings() {
   const apiKeyInput = document.getElementById('settings-api-key');
   const modelSelect = document.getElementById('settings-tts-model');
   const selectedVoiceCard = document.querySelector('#voice-selection-grid .voice-card.is-selected');
+  const contentModelSelect = document.getElementById('settings-content-model');
+  const contentSystemPromptInput = document.getElementById('settings-content-system-prompt');
 
   const newSettings = {
     geminiApiKey: apiKeyInput ? apiKeyInput.value.trim() : '',
     ttsModel: modelSelect ? modelSelect.value : DEFAULT_SETTINGS.ttsModel,
     ttsVoice: selectedVoiceCard ? selectedVoiceCard.dataset.voice : DEFAULT_SETTINGS.ttsVoice,
+    contentModel: contentModelSelect ? contentModelSelect.value : DEFAULT_SETTINGS.contentModel,
+    contentSystemPrompt: contentSystemPromptInput ? contentSystemPromptInput.value : DEFAULT_SYSTEM_PROMPT,
   };
 
   const result = await window.desktopApi.saveSettings(newSettings);

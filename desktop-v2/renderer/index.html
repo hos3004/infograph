@@ -136,6 +136,7 @@
           <button class="tab-btn active" data-target="tab-content-slides"><i data-lucide="layers" style="width: 20px; height: 20px;"></i> الشرائح</button>
           <button class="tab-btn" data-target="tab-content-text"><i data-lucide="type" style="width: 20px; height: 20px;"></i> النصوص</button>
           <button class="tab-btn" data-target="tab-content-audio"><i data-lucide="music" style="width: 20px; height: 20px;"></i> الصوتيات</button>
+          <button class="tab-btn" data-target="tab-content-generate"><i data-lucide="sparkles" style="width: 20px; height: 20px;"></i> محتوى</button>
         </div>
 
         <div class="tab-content">
@@ -264,6 +265,68 @@
               <input id="music-volume-input" type="range" class="range-input" min="0" max="100" step="1" value="50" />
             </div>
           </div>
+
+          <!-- === TAB: CONTENT GENERATION === -->
+          <div id="tab-content-generate" style="display: none; overflow-y: auto; flex-direction: column; gap: 0.75rem; padding-bottom: 1rem;">
+            <div class="setting-group prop-field" style="border: 2px dashed #a7f3d0; background: #f0fdf4; margin-bottom: 0;">
+              <label class="setting-label" style="color: #065f46; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                <i data-lucide="sparkles" style="width: 16px; height: 16px; display: inline; vertical-align: middle;"></i>
+                توليد محتوى إنفوجراف من موضوع
+              </label>
+
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <label style="font-size: 0.82rem; font-weight: 600; color: #374151;">الموضوع أو المقالة</label>
+                <textarea id="content-topic-input" class="input-v2" rows="4" placeholder="الصق هنا أي نص أو موضوع أو مقالة... سيولّد جيميناي شرائح إنفوجراف جاهزة" style="resize: vertical; font-size: 0.9rem; direction: rtl;"></textarea>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 0.35rem;">
+                  <label style="font-size: 0.82rem; font-weight: 600; color: #374151;">عدد الشرائح</label>
+                  <select id="content-slide-count" class="input-v2" style="font-size: 0.85rem; padding: 0.5rem;">
+                    <option value="4">4 شرائح</option>
+                    <option value="6">6 شرائح</option>
+                    <option value="8" selected>8 شرائح</option>
+                    <option value="10">10 شرائح</option>
+                    <option value="12">12 شريحة</option>
+                  </select>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 0.35rem;">
+                  <label style="font-size: 0.82rem; font-weight: 600; color: #374151;">أسلوب المحتوى</label>
+                  <select id="content-style-select" class="input-v2" style="font-size: 0.85rem; padding: 0.5rem;">
+                    <option value="informative">إخباري / تقريري</option>
+                    <option value="educational">تعليمي / توعوي</option>
+                    <option value="data">بيانات وإحصاءات</option>
+                    <option value="breaking">عاجل / خبر عاجل</option>
+                    <option value="historical">تاريخي / وثائقي</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem;">
+                <label style="font-size: 0.82rem; font-weight: 600; color: #374151;">قالب النص</label>
+                <select id="content-preset-select" class="input-v2" style="font-size: 0.85rem; padding: 0.5rem;">
+                  <option value="live-reveal-dot">كشف سينمائي حي + نقطة</option>
+                  <option value="broadcast-split">أسطر إخبارية متتابعة</option>
+                  <option value="news-ledger">تقرير بصري / News Ledger</option>
+                  <option value="number-hero">عداد إحصائي متحرك</option>
+                  <option value="layered-title">نظام عنوان طبقي</option>
+                  <option value="impact-shock">صدمة خفيفة</option>
+                  <option value="word-by-word">كلمة كلمة</option>
+                </select>
+              </div>
+
+              <button id="generate-content-btn" class="btn-blue" style="width: 100%; padding: 0.65rem; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                توليد الشرائح بالذكاء الاصطناعي
+              </button>
+              <span id="content-generate-status" class="muted-text" style="font-size: 0.78rem; margin-top: 0.4rem; display: block; text-align: center;"></span>
+            </div>
+
+            <div class="muted-text" style="font-size: 0.78rem; padding: 0 0.25rem; margin-top: 0.25rem;">
+              سيتم إضافة الشرائح المولّدة إلى قائمة شرائحك مع صور بلاسهولدر. يمكنك استبدال الصور لاحقاً.
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -638,6 +701,25 @@
             </div>
           </div>
 
+          <!-- Content Generation Settings -->
+          <div class="settings-section">
+            <p class="settings-section-title">إعدادات توليد المحتوى (محتوى)</p>
+            <div class="settings-row">
+              <label for="settings-content-model">موديل توليد المحتوى</label>
+              <select id="settings-content-model" class="input-v2">
+                <option value="gemini-2.0-flash">gemini-2.0-flash (سريع - موصى به)</option>
+                <option value="gemini-2.0-flash-thinking-exp">gemini-2.0-flash-thinking-exp (تفكير أعمق)</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro (جودة عالية)</option>
+              </select>
+              <span class="hint">يُستخدم لتوليد نصوص الإنفوجراف من الموضوع.</span>
+            </div>
+            <div class="settings-row">
+              <label for="settings-content-system-prompt">البرومبت النظامي لتوليد المحتوى</label>
+              <textarea id="settings-content-system-prompt" class="input-v2" rows="6" style="resize: vertical; font-size: 0.82rem; line-height: 1.5; direction: rtl;" placeholder="أدخل التعليمات النظامية لجيميناي..."></textarea>
+              <span class="hint">يحدد أسلوب وقواعد توليد نصوص الشرائح. يمكن تعديله حسب احتياجات قناتك.</span>
+            </div>
+          </div>
+
         </div>
 
         <div class="settings-modal-footer">
@@ -798,12 +880,14 @@
         'tab-content-slides': document.getElementById('tab-content-slides'),
         'tab-content-text': document.getElementById('tab-content-text'),
         'tab-content-audio': document.getElementById('tab-content-audio'),
+        'tab-content-generate': document.getElementById('tab-content-generate'),
       };
 
       const panelDisplayMode = {
         'tab-content-slides': 'flex',
         'tab-content-text': 'block',
         'tab-content-audio': 'block',
+        'tab-content-generate': 'flex',
       };
 
       const showTabPanel = (target) => {

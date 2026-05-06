@@ -3,6 +3,62 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
+
+// ─── PNG generator (pure Node.js, no deps) ────────────────────────────────
+
+const _CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c;
+  }
+  return t;
+})();
+
+function _crc32(buf) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) crc = _CRC32_TABLE[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function _pngChunk(type, data) {
+  const typeBuf = Buffer.from(type, 'ascii');
+  const lenBuf = Buffer.allocUnsafe(4); lenBuf.writeUInt32BE(data.length, 0);
+  const crcBuf = Buffer.allocUnsafe(4); crcBuf.writeUInt32BE(_crc32(Buffer.concat([typeBuf, data])), 0);
+  return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
+}
+
+function generateSolidPng(w, h, r, g, b) {
+  const ihdr = Buffer.allocUnsafe(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; ihdr[9] = 2; ihdr[10] = ihdr[11] = ihdr[12] = 0;
+  const rowLen = 1 + w * 3;
+  const raw = Buffer.alloc(h * rowLen);
+  for (let y = 0; y < h; y++) {
+    const o = y * rowLen;
+    raw[o] = 0;
+    for (let x = 0; x < w; x++) { raw[o+1+x*3]=r; raw[o+2+x*3]=g; raw[o+3+x*3]=b; }
+  }
+  const idat = zlib.deflateSync(raw, { level: 6 });
+  return Buffer.concat([
+    Buffer.from([137,80,78,71,13,10,26,10]),
+    _pngChunk('IHDR', ihdr),
+    _pngChunk('IDAT', idat),
+    _pngChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+function ensurePlaceholderPng() {
+  const dir = path.join(app.getPath('userData'), 'placeholders');
+  fs.mkdirSync(dir, { recursive: true });
+  const filePath = path.join(dir, 'content-placeholder.png');
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, generateSolidPng(1920, 1080, 15, 23, 42));
+  }
+  return filePath;
+}
 
 const { findAssetPath, listAssetsSnapshot, toFileUrl } = require('./shared/assets.cjs');
 const { createDesktopPaths, ensureDesktopDirs } = require('./shared/paths.cjs');
@@ -305,6 +361,7 @@ function buildBootstrapPayload() {
     logoDataUrl: readFileAsDataUrl(logoPath),
     fontDataUrl: readFileAsDataUrl(fontPath),
     assets: listAssetsSnapshot(desktopPaths),
+    placeholderPath: ensurePlaceholderPng(),
   };
 }
 
@@ -469,6 +526,115 @@ ipcMain.handle('desktop:generate-single-voiceover', async (_event, payload) => {
       voiceoverPath: filePath,
       voiceoverUrl: toFileUrl(filePath),
       durationMs,
+    };
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
+  const {
+    topic,
+    slideCount = 10,
+    contentStyle = 'وثائقي',
+    textPreset = 'automatic',
+    apiKey: payloadKey,
+    model: payloadModel,
+    systemPrompt: payloadPrompt,
+  } = payload;
+
+  if (!topic || !topic.trim()) {
+    return { success: false, error: 'يرجى إدخال نص أو موضوع أولاً' };
+  }
+
+  let apiKey = payloadKey && payloadKey.trim() ? payloadKey.trim() : null;
+  let contentModel = payloadModel && payloadModel.trim() ? payloadModel.trim() : null;
+  let systemPrompt = payloadPrompt && payloadPrompt.trim() ? payloadPrompt.trim() : null;
+
+  try {
+    const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
+    const saved = JSON.parse(raw);
+    if (!apiKey) apiKey = saved.geminiApiKey || null;
+    if (!contentModel) contentModel = saved.contentModel || null;
+    if (!systemPrompt) systemPrompt = saved.contentSystemPrompt || null;
+  } catch {}
+
+  if (!apiKey) {
+    apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
+  }
+  if (!apiKey) {
+    return { success: false, error: 'مفتاح Gemini API مفقود. أضفه في إعدادات البرنامج (⚙️).' };
+  }
+
+  contentModel = contentModel || 'gemini-2.0-flash';
+  systemPrompt = systemPrompt || 'أنت محرر إنفوجراف تلفزيوني عربي محترف ومنتج تحريري. مهمتك تحويل موضوع عربي طويل إلى عدد محدد من شرائح الإنفوجراف. كل شريحة يجب أن تكون مناسبة للرسوم المتحركة وشاشات التلفزيون وأنماط حركة النص. اكتب بعربية مصقولة وموجزة ومنظمة بصرياً. أعد JSON فقط بدون أي نص توضيحي.';
+
+  const count = Math.min(30, Math.max(3, Number(slideCount) || 10));
+  const preset = textPreset === 'automatic' ? 'news-ledger' : textPreset;
+
+  const userPrompt = `حوّل الموضوع التالي إلى ${count} شريحة إنفوجراف.
+
+أسلوب المحتوى: ${contentStyle}
+نمط حركة النص المُفضَّل: ${preset}
+
+يجب أن يحتوي نص كل شريحة على أربعة أجزاء مفصولة بـ "++":
+1. كيكر / تصنيف
+2. عنوان رئيسي قوي
+3. شرح مختصر
+4. سؤال أو جملة خاتمة
+
+أعد بالضبط هذا الشكل من JSON:
+{
+  "slides": [
+    {
+      "title": "عنوان داخلي مختصر",
+      "text": "الجزء1 ++ الجزء2 ++ الجزء3 ++ الجزء4",
+      "imagePrompt": "English prompt for a realistic cinematic visual, no text",
+      "visualHint": "توجيه بصري عربي اختياري"
+    }
+  ]
+}
+
+الموضوع:
+${topic}`;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${contentModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.7 },
+      }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result?.error?.message || `HTTP ${res.status}`);
+
+    const raw = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!raw) throw new Error('لم يُرجع النموذج أي محتوى');
+
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { throw new Error('فشل تحليل JSON من النموذج'); }
+
+    const slides = Array.isArray(parsed.slides) ? parsed.slides : [];
+    if (slides.length === 0) throw new Error('لم تُولَّد أي شرائح');
+
+    const placeholderPath = ensurePlaceholderPng();
+
+    return {
+      success: true,
+      slides: slides.map((s, i) => ({
+        title: s.title || '',
+        text: s.text || '',
+        imagePrompt: s.imagePrompt || '',
+        visualHint: s.visualHint || '',
+        placeholderPath,
+        placeholderUrl: toFileUrl(placeholderPath),
+      })),
     };
   } catch (err) {
     return { success: false, error: err?.message || String(err) };
