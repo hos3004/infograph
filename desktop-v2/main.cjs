@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -417,7 +417,7 @@ async function createWindow() {
     minWidth: 1100,
     minHeight: 760,
     show: false,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f4f1ec',
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
@@ -425,6 +425,36 @@ async function createWindow() {
       webSecurity: false,
       preload: desktopPaths.preloadScript,
     },
+  });
+
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    const template = [];
+    const hasSelection = Boolean(params.selectionText && params.selectionText.trim());
+
+    if (params.isEditable) {
+      template.push(
+        { role: 'undo', label: 'تراجع' },
+        { role: 'redo', label: 'إعادة' },
+        { type: 'separator' },
+        { role: 'cut', label: 'قص' },
+        { role: 'copy', label: 'نسخ' },
+        { role: 'paste', label: 'لصق' },
+        { role: 'pasteAndMatchStyle', label: 'لصق مع مطابقة التنسيق' },
+        { role: 'delete', label: 'حذف' },
+        { type: 'separator' },
+        { role: 'selectAll', label: 'تحديد الكل' },
+      );
+    } else if (hasSelection) {
+      template.push(
+        { role: 'copy', label: 'نسخ' },
+        { type: 'separator' },
+        { role: 'selectAll', label: 'تحديد الكل' },
+      );
+    } else {
+      template.push({ role: 'selectAll', label: 'تحديد الكل' });
+    }
+
+    Menu.buildFromTemplate(template).popup({ window: mainWindow });
   });
 
   mainWindow.once('ready-to-show', () => {
