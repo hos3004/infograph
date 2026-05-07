@@ -2001,6 +2001,7 @@ async function handleGenerateTextVoiceover() {
 }
 
 function ensureGenerateVoiceoversButton() {
+  return;
   if (document.getElementById('generate-voiceovers-btn')) return;
   const renderBtn = elements.renderBtn;
   if (!renderBtn || !renderBtn.parentElement) return;
@@ -2232,7 +2233,6 @@ elements.emptyState.addEventListener('keydown', (event) => {
 elements.refreshAssetsBtn.addEventListener('click', refreshAssets);
 elements.openOutputBtn.addEventListener('click', () => window.desktopApi.openOutputFolder());
 elements.renderBtn.addEventListener('click', handleRender);
-ensureGenerateVoiceoversButton();
 if (elements.cancelRenderBtn) {
   elements.cancelRenderBtn.addEventListener('click', async () => {
     const canceled = await window.desktopApi.cancelRender({ model: 'infograph' });
@@ -2429,11 +2429,6 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ─── Generate Text Voiceover button ───────────────────────────────────────
-
-const generateTextVoiceoverBtn = document.getElementById('generate-text-voiceover-btn');
-if (generateTextVoiceoverBtn) {
-  generateTextVoiceoverBtn.addEventListener('click', handleGenerateTextVoiceover);
-}
 
 // ─── Content Generation ───────────────────────────────────────────────────────
 
