@@ -1770,6 +1770,7 @@ function renderSlides() {
   });
 
   renderPreviewFrame();
+  renderChatGptPromptBatchButtons();
 }
 
 function syncAssetControls() {
@@ -2462,7 +2463,7 @@ async function handleGenerateContentSlides() {
   try {
     const result = await window.desktopApi.generateContentSlides({
       topic,
-      count,
+      slideCount: count,
       contentStyle,
       textPreset,
       maxWords,
@@ -2567,6 +2568,159 @@ async function handleGenerateScriptVoiceover() {
     }
   }
 }
+
+function ensureGenerateImagesControls() {
+  if (document.getElementById('chatgpt-image-prompt-controls')) return;
+  const generateContentBtn = document.getElementById('generate-content-btn');
+  const contentSection = generateContentBtn ? generateContentBtn.closest('.setting-group') : null;
+  const parent = contentSection ? contentSection.parentElement : document.getElementById('tab-content-generate');
+  if (!parent) return;
+
+  const section = document.createElement('div');
+  section.id = 'chatgpt-image-prompt-controls';
+  section.className = 'setting-group prop-field';
+  section.style.cssText = 'border-color:#bfdbfe;background:#eff6ff;margin-bottom:0.75rem;';
+  section.innerHTML = `
+    <label class="setting-label" style="color:#1e3a8a;font-size:0.84rem;margin-bottom:0.55rem;">
+      <i data-lucide="clipboard-list" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-left:4px;"></i>
+      برومبت صور ChatGPT
+    </label>
+    <div id="chatgpt-prompt-batches" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.4rem;"></div>
+  `;
+
+  if (contentSection && contentSection.nextSibling) {
+    parent.insertBefore(section, contentSection.nextSibling);
+  } else {
+    parent.appendChild(section);
+  }
+
+  renderChatGptPromptBatchButtons();
+  if (window.lucide) lucide.createIcons({ nodes: Array.from(section.querySelectorAll('[data-lucide]')) });
+}
+
+function getChatGptProjectInstructions() {
+  return `Generate separate 16:9 images, one image per slide, for an Arabic infographic video.
+
+Master style:
+Premium modern Arabic news infographic cover style, semi-realistic broadcast design, cinematic realism, elegant refined collage composition, polished documentary lighting.
+
+Layout rules for every image:
+- Keep the main visual cluster on the RIGHT side.
+- Leave wide clean negative space on the LEFT side for Arabic title and supporting text that will be added later.
+- The left side should be bright, soft, uncluttered, and easy to read over.
+- Use layered collage depth, soft shadows, light particles, subtle atmosphere, and high-end editorial broadcast polish.
+- Use a sophisticated color palette: warm beige, off-white, dark navy, muted gold, and bold red accents when tension or warning is needed.
+- Make the slides visually consistent as one series, but vary the subject and symbols per slide.
+- No readable text, no Arabic words, no English words, no logos, no watermarks, no captions.
+- Do not create a single collage of all slides. Create separate images, one per slide.
+- 16:9 horizontal format, high quality, sharp, professional, broadcast-ready.
+- Keep the style suitable for Cairo and Egyptian cities: Egyptian environment, Egyptian clothing, modest styling, and women can be shown wearing hijab when appropriate.
+
+Safety and generation-compliance rules:
+- Keep the imagery safe, editorial, symbolic, and documentary-style.
+- Do not depict graphic violence, injuries, blood, abuse, threats, humiliation, or explicit distress.
+- Do not sexualize anyone. Avoid depicting teens or children unless the slide absolutely requires a normal, respectful, non-sensitive family/public context.
+- If children appear, they must be fully clothed, non-central, not distressed, and not used to imply harm or exploitation.
+- Do not create images of real identifiable public figures or private individuals. Use fictional generic people only.
+- Do not include real logos, official seals, copyrighted characters, brand marks, or readable legal/government documents.
+- Do not make defamatory claims visually. For controversial topics, express tension through neutral symbols such as files, scales, shadows, red accents, divided composition, or concerned facial expressions.
+- Avoid stereotypes or demeaning portrayals of any gender, religion, nationality, class, or social group.
+- If any slide idea is sensitive, make the image metaphorical and policy/editorial rather than explicit or accusatory.`;
+}
+
+function getChatGptBatchRanges(total) {
+  return [
+    { start: 0, end: Math.min(2, total), label: '1-2' },
+    { start: 2, end: Math.min(5, total), label: '3-5' },
+    { start: 5, end: Math.min(10, total), label: '6-10' },
+  ];
+}
+
+function buildChatGptSlideBatchPrompt(start, end) {
+  const count = Math.max(0, end - start);
+  const command = count === 1 ? 'ولد صورة واحدة للشريحة التالية' : `ولد ${count} صور للشرائح التالية`;
+  const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  const slideLines = state.slides.slice(start, end).map((slide, offset) => {
+    const index = start + offset + 1;
+    return [
+      `Slide ${index}:`,
+      '',
+      `On-screen text: ${clean(slide.text)}`,
+      '',
+      `Visual idea: ${clean(slide.imagePrompt || slide.visualHint || slide.voiceoverText || slide.title || slide.text)}`,
+      '',
+      `Tone / angle: ${clean(slide.visualHint || slide.title || 'لقطة إنفوجراف إخبارية مصرية أنيقة')}`,
+    ].join('\n');
+  }).join('\n\n');
+
+  return `${command}
+
+${slideLines}`;
+}
+
+function renderChatGptPromptBatchButtons() {
+  const container = document.getElementById('chatgpt-prompt-batches');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const instructionsButton = document.createElement('button');
+  instructionsButton.type = 'button';
+  instructionsButton.className = 'btn-secondary';
+  instructionsButton.style.cssText = 'padding:0.42rem 0.45rem;font-size:0.78rem;justify-content:center;gap:0.28rem;min-height:36px;';
+  instructionsButton.innerHTML = '<i data-lucide="info" style="width:14px;height:14px;"></i><span>تعليمات</span>';
+  instructionsButton.addEventListener('click', () => handleCopyChatGptInstructions(instructionsButton));
+  container.appendChild(instructionsButton);
+
+  getChatGptBatchRanges(state.slides.length).forEach(({ start, end, label }) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn-secondary';
+    button.style.cssText = 'padding:0.42rem 0.45rem;font-size:0.78rem;justify-content:center;min-height:36px;';
+    button.textContent = label;
+    button.disabled = start >= state.slides.length;
+    button.title = button.disabled ? 'ولّد الشرائح أولًا' : `نسخ برومبت الشرائح ${start + 1}-${end}`;
+    button.addEventListener('click', () => copyChatGptBatchPrompt(start, end, button));
+    container.appendChild(button);
+  });
+
+  if (window.lucide) lucide.createIcons({ nodes: Array.from(container.querySelectorAll('[data-lucide]')) });
+}
+
+async function writeClipboardWithStatus(text, successMessage, button) {
+  await navigator.clipboard.writeText(text);
+  if (button) {
+    const original = button.innerHTML || button.textContent;
+    button.textContent = 'تم النسخ';
+    setTimeout(() => {
+      button.innerHTML = original;
+      if (window.lucide) lucide.createIcons({ nodes: Array.from(button.querySelectorAll('[data-lucide]')) });
+    }, 1400);
+  }
+}
+
+async function copyChatGptBatchPrompt(start, end, button) {
+  try {
+    await writeClipboardWithStatus(
+      buildChatGptSlideBatchPrompt(start, end),
+      `تم نسخ برومبت الشرائح ${start + 1}-${end}.`,
+      button,
+    );
+    setStatus('برومبت الصور', `تم نسخ دفعة الشرائح ${start + 1}-${end}`);
+  } catch (err) {
+    setStatus('خطأ', err?.message || 'فشل نسخ البرومبت');
+  }
+}
+
+async function handleCopyChatGptInstructions(btn = null) {
+  try {
+    await writeClipboardWithStatus(getChatGptProjectInstructions(), 'تم نسخ تعليمات مشروع ChatGPT.', btn);
+    setStatus('برومبت الصور', 'تم نسخ تعليمات مشروع ChatGPT إلى الحافظة');
+  } catch (err) {
+    setStatus('خطأ', err?.message || 'فشل نسخ البرومبت');
+  }
+}
+
+ensureGenerateImagesControls();
 
 const generateContentBtn = document.getElementById('generate-content-btn');
 if (generateContentBtn) {
