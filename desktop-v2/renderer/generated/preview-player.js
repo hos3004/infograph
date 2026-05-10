@@ -16343,6 +16343,93 @@ Check that all your Remotion packages are on the same version. If your dependenc
       }
     );
   };
+  function getSpecialSlideText(slide) {
+    const source = slide.title || slide.text || "";
+    return source.split("++").map((part) => part.trim()).filter(Boolean).join(" ");
+  }
+  var SpecialSlideOverlay = ({ slide, relativeFrame, type }) => {
+    const text = getSpecialSlideText(slide);
+    const opacity = interpolate(relativeFrame, [0, 18], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const translateY = interpolate(relativeFrame, [0, 24], [24, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const scale = interpolate(relativeFrame, [0, 42], [0.985, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    });
+    const isCover = type === "cover";
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+      AbsoluteFill,
+      {
+        style: {
+          direction: "rtl",
+          background: isCover ? "linear-gradient(135deg, rgba(5, 10, 24, 0.82) 0%, rgba(15, 32, 54, 0.52) 48%, rgba(0, 0, 0, 0.84) 100%)" : "linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(8, 16, 31, 0.88) 58%, rgba(0, 0, 0, 0.78) 100%)",
+          alignItems: "center",
+          justifyContent: "center",
+          display: "flex",
+          padding: isCover ? "130px 210px" : "150px 240px",
+          opacity
+        },
+        children: /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
+          "div",
+          {
+            style: {
+              width: "100%",
+              maxWidth: isCover ? 1380 : 1280,
+              transform: `translateY(${translateY}px) scale(${scale})`,
+              transformOrigin: "center center",
+              textAlign: "center"
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+                "div",
+                {
+                  style: {
+                    width: isCover ? 360 : 260,
+                    height: 8,
+                    margin: "0 auto 48px",
+                    background: isCover ? "#f97316" : "#38bdf8",
+                    opacity: 0.92
+                  }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+                "div",
+                {
+                  style: {
+                    color: "#ffffff",
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 900,
+                    fontSize: isCover ? 102 : 86,
+                    lineHeight: isCover ? 1.16 : 1.28,
+                    letterSpacing: 0,
+                    textShadow: "0 18px 46px rgba(0, 0, 0, 0.72)",
+                    whiteSpace: "pre-wrap"
+                  },
+                  children: text
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+                "div",
+                {
+                  style: {
+                    width: isCover ? 720 : 420,
+                    height: 2,
+                    margin: "52px auto 0",
+                    background: "rgba(255, 255, 255, 0.5)"
+                  }
+                }
+              )
+            ]
+          }
+        )
+      }
+    );
+  };
   var Slide = ({
     slide,
     index,
@@ -16367,6 +16454,7 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const transitionStyle = isFirst ? {} : getSlideContainerStyle(transitionType, frame, TRANSITION_FRAMES);
     const relativeFrame = Math.max(0, frame - (isFirst ? 0 : TRANSITION_FRAMES));
     const hasText = Boolean(slide.text);
+    const specialSlideType = slide.slideType === "cover" || slide.slideType === "question" ? slide.slideType : null;
     return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
       AbsoluteFill,
       {
@@ -16402,7 +16490,14 @@ Check that all your Remotion packages are on the same version. If your dependenc
               }
             }
           ),
-          hasText ? /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(import_jsx_runtime22.Fragment, { children: [
+          specialSlideType ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+            SpecialSlideOverlay,
+            {
+              slide,
+              relativeFrame,
+              type: specialSlideType
+            }
+          ) : hasText ? /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(import_jsx_runtime22.Fragment, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
               SubtitleVignette,
               {
@@ -16633,21 +16728,29 @@ Check that all your Remotion packages are on the same version. If your dependenc
     const framesPerSlide = Math.floor(slideDurationInSeconds * fps);
     const overlapFrames = 30;
     const validSlides = slides.filter((s) => s.imageUrl);
-    const offsetFrames = framesPerSlide - overlapFrames;
+    const coverFrames = Math.round(3 * fps);
+    const slideTimings = validSlides.reduce((acc, slide, index) => {
+      const duration = index === 0 && slide.slideType === "cover" ? coverFrames : framesPerSlide;
+      const previous = acc[index - 1];
+      const start = previous ? previous.start + previous.duration - overlapFrames : 0;
+      acc.push({ start, duration });
+      return acc;
+    }, []);
     const EP_FRAMES = endPageDurationFrames ?? 0;
-    const slideEndFrame = validSlides.length > 0 ? validSlides.length * offsetFrames + overlapFrames : 0;
+    const slideEndFrame = validSlides.length > 0 ? Math.max(...slideTimings.map((timing) => timing.start + timing.duration)) : 0;
+    const voiceoverStartFrame = validSlides[0]?.slideType === "cover" && slideTimings[1] ? slideTimings[1].start : 0;
     const EP_FADE_SEC = 2;
     const EP_FADE_FRAMES = Math.round(EP_FADE_SEC * fps);
     const epStartFrame = endPage && EP_FRAMES > 0 ? Math.max(0, slideEndFrame - EP_FADE_FRAMES) : slideEndFrame;
     const totalVideoFrames = endPage && EP_FRAMES > 0 ? slideEndFrame + EP_FRAMES - EP_FADE_FRAMES : slideEndFrame;
     return /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)(AbsoluteFill, { style: { backgroundColor: "#000", direction: "ltr" }, children: [
       validSlides.map((slide, i) => {
-        const startFrame = i * offsetFrames;
+        const timing = slideTimings[i];
         return /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)(
           Sequence,
           {
-            from: startFrame,
-            durationInFrames: framesPerSlide,
+            from: timing.start,
+            durationInFrames: timing.duration,
             layout: "none",
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
@@ -16713,22 +16816,22 @@ Check that all your Remotion packages are on the same version. If your dependenc
           }
         }
       ),
-      voiceover && /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
+      voiceover && /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(Sequence, { from: voiceoverStartFrame, durationInFrames: Math.max(1, durationInFrames - voiceoverStartFrame), children: /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
         Audio,
         {
           src: voiceover,
           volume: (frame) => {
-            const fadeStart = Math.max(0, durationInFrames - 45);
+            const fadeStart = Math.max(0, durationInFrames - voiceoverStartFrame - 45);
             const baseVol = typeof voiceoverVolume === "number" && !isNaN(voiceoverVolume) ? voiceoverVolume / 100 : 1;
-            if (fadeStart >= durationInFrames)
+            if (fadeStart >= durationInFrames - voiceoverStartFrame)
               return baseVol;
-            return interpolate(frame, [fadeStart, durationInFrames], [baseVol, 0], {
+            return interpolate(frame, [fadeStart, durationInFrames - voiceoverStartFrame], [baseVol, 0], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp"
             });
           }
         }
-      ),
+      ) }),
       /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(VisualEffects, { effects: effects ?? [], cinematicBarSize: cinematicBarSize ?? 6 })
     ] });
   };

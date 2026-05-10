@@ -4,6 +4,7 @@ const { resolveAssetPath } = require('./assets.cjs');
 
 const ALLOWED_EFFECTS = new Set(['dust', 'light-leak', 'bokeh', 'scanlines', 'grain', 'vignette', 'cinematic-bars']);
 const ALLOWED_PRESETS = new Set(['dark', 'gold', 'blue', 'red', 'orange']);
+const ALLOWED_SLIDE_TYPES = new Set(['cover', 'content', 'question']);
 const ALLOWED_TEXT_ANIMATIONS = new Set([
   'motion-blur',
   'typewriter',
@@ -28,6 +29,8 @@ function normalizeSlides(slides) {
     .map((slide, index) => ({
       id: slide.id || `slide-${Date.now()}-${index}`,
       imagePath: slide.imagePath,
+      slideType: ALLOWED_SLIDE_TYPES.has(slide.slideType) ? slide.slideType : 'content',
+      title: typeof slide.title === 'string' ? slide.title : '',
       text: typeof slide.text === 'string' ? slide.text : '',
       isMuted: slide.isMuted !== false,
       voiceoverPath: typeof slide.voiceoverPath === 'string' ? slide.voiceoverPath : null,

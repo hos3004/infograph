@@ -8,6 +8,7 @@ const TEXT_PRESET_STYLES = {
 };
 
 const FPS = 25;
+const COVER_SLIDE_DURATION_SECONDS = 3;
 const PROJECT_TYPE = 'infograph';
 const PROJECT_AUTOSAVE_DELAY_MS = 1600;
 const TRANSITION_OPTIONS = ['fade', 'light-leak', 'blur-wipe'];
@@ -41,7 +42,8 @@ const DEFAULT_SYSTEM_PROMPT = `أنت محرر إخباري متخصص في إن
 - الخلاصة: 5-8 كلمات (الاستنتاج أو الدعوة للتفكير)
 - تجنب التكرار بين الشرائح`;
 
-const DEFAULT_TTS_STYLE_PROMPT = 'Premium commercial. Dynamic pacing—starts intrigued, ends punchy. Tone is polished, persuasive, and inviting.';
+const LEGACY_TTS_STYLE_PROMPT = 'Premium commercial. Dynamic pacing—starts intrigued, ends punchy. Tone is polished, persuasive, and inviting.';
+const DEFAULT_TTS_STYLE_PROMPT = 'Arabic television documentary narrator. Speak in Modern Standard Arabic with a calm, authoritative news-report tone. Use a medium measured pace, clear articulation, and natural pauses between sentences and paragraphs. Do not rush. Sound like a serious TV report narrator, polished and informative, not commercial or promotional.';
 
 const DEFAULT_SETTINGS = {
   geminiApiKey: '',
@@ -51,6 +53,14 @@ const DEFAULT_SETTINGS = {
   contentModel: 'gemini-2.5-flash',
   contentSystemPrompt: DEFAULT_SYSTEM_PROMPT,
 };
+
+function normalizeSettings(saved) {
+  const settings = { ...DEFAULT_SETTINGS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  if (!settings.ttsStylePrompt || settings.ttsStylePrompt === LEGACY_TTS_STYLE_PROMPT) {
+    settings.ttsStylePrompt = DEFAULT_TTS_STYLE_PROMPT;
+  }
+  return settings;
+}
 
 const state = {
   assets: { overlays: [], music: [], endpage: [] },
@@ -96,7 +106,7 @@ const state = {
   previewPositionMs: 0,
   previewRafId: null,
   previewStartedAt: 0,
-  settings: { ...DEFAULT_SETTINGS },
+  settings: normalizeSettings(),
 };
 
 const elements = {
@@ -459,7 +469,7 @@ async function applyOpenedProject(project, filePath) {
     state.selectedSlideId = ui.selectedSlideId || null;
 
     if (data.settings && typeof data.settings === 'object') {
-      state.settings = { ...state.settings, ...data.settings, geminiApiKey: state.settings.geminiApiKey };
+      state.settings = normalizeSettings({ ...state.settings, ...data.settings, geminiApiKey: state.settings.geminiApiKey });
       updatePromptInspector();
     }
 
@@ -568,8 +578,9 @@ function updateVoiceoverMeta() {
   const durationSec = state.voiceoverDurationMs / 1000;
   const slideDur = Number(state.slideDurationInSeconds) || 5;
   const slidesNeeded = Math.ceil(durationSec / slideDur);
+  const spokenCount = getSpokenSlideCount();
   
-  elements.voiceoverMeta.textContent = `${durationSec.toFixed(1)}ث (~${slidesNeeded} شريحة)`;
+  elements.voiceoverMeta.textContent = `${durationSec.toFixed(1)}ث (~${slidesNeeded}/${spokenCount || state.slides.length} شريحة منطوقة)`;
 }
 
 function updateRangeVisual(input) {
@@ -665,12 +676,47 @@ function getTransitionType(index) {
   return TRANSITION_OPTIONS[(index - 1) % TRANSITION_OPTIONS.length];
 }
 
+function isCoverSlide(slide, index = 0) {
+  return index === 0 && slide?.slideType === 'cover';
+}
+
+function getSpokenSlideCount() {
+  return state.slides.filter((slide, index) => !isCoverSlide(slide, index)).length;
+}
+
+function buildSlideTimings(slides, slideDurationMs, overlapMs) {
+  let currentStart = 0;
+  return slides.map((slide, index) => {
+    const durationMs = isCoverSlide(slide, index)
+      ? COVER_SLIDE_DURATION_SECONDS * 1000
+      : slideDurationMs;
+    const timing = {
+      startMs: currentStart,
+      endMs: currentStart + durationMs,
+      durationMs,
+    };
+    currentStart += durationMs - overlapMs;
+    return timing;
+  });
+}
+
+function calculateNarratedSlideDurationSeconds(voiceoverDurationMs) {
+  const spokenCount = Math.max(1, getSpokenSlideCount());
+  const durationSec = Math.max(0, Number(voiceoverDurationMs || 0) / 1000);
+  const overlapCompensationSec = spokenCount > 1 ? spokenCount - 1 : 0;
+  const readingHoldSec = 0.5;
+  return Math.max(4, Math.min(20, ((durationSec + overlapCompensationSec) / spokenCount) + readingHoldSec));
+}
+
 function getPreviewTimeline() {
   const slideCount = state.slides.length;
   const slideDurationMs = Math.max(2000, Number(state.slideDurationInSeconds || 5) * 1000);
   const overlapMs = slideCount > 1 ? Math.min(1000, Math.max(300, slideDurationMs - 500)) : 0;
   const offsetMs = slideDurationMs - overlapMs;
-  const slideEndMs = slideCount > 0 ? ((slideCount - 1) * offsetMs) + slideDurationMs : 0;
+  const slideTimings = buildSlideTimings(state.slides, slideDurationMs, overlapMs);
+  const slideEndMs = slideTimings.length > 0
+    ? Math.max(...slideTimings.map((timing) => timing.endMs))
+    : 0;
   const endPageMs = state.endPage && state.endPageDurationFrames > 0
     ? Math.round((state.endPageDurationFrames / FPS) * 1000)
     : 0;
@@ -680,6 +726,7 @@ function getPreviewTimeline() {
     slideDurationMs,
     overlapMs,
     offsetMs,
+    slideTimings,
     slideEndMs,
     endPageMs,
     totalMs: slideEndMs + endPageMs,
@@ -749,6 +796,8 @@ function buildExactPreviewInputProps() {
     slides: state.slides.map((slide) => ({
       id: slide.id,
       imageUrl: slide.fileUrl,
+      slideType: slide.slideType || 'content',
+      title: slide.title || '',
       text: slide.text || '',
       isMuted: slide.isMuted !== false,
       voiceoverUrl: slide.voiceoverUrl || null,
@@ -778,12 +827,19 @@ function getExactPreviewDurationInFrames() {
   const framesPerSlide = Math.floor(Number(state.slideDurationInSeconds || 5) * fps);
   const overlapFrames = 30;
   const validSlides = state.slides.filter((slide) => slide.fileUrl);
+  const coverFrames = Math.round(COVER_SLIDE_DURATION_SECONDS * fps);
 
   if (validSlides.length === 0) {
     return 30;
   }
 
-  const slideFrames = (validSlides.length * (framesPerSlide - overlapFrames)) + overlapFrames;
+  let currentStart = 0;
+  let slideFrames = 0;
+  validSlides.forEach((slide, index) => {
+    const duration = isCoverSlide(slide, index) ? coverFrames : framesPerSlide;
+    slideFrames = Math.max(slideFrames, currentStart + duration);
+    currentStart += duration - overlapFrames;
+  });
   const endPageFrames = state.endPage ? Math.max(0, Number(state.endPageDurationFrames || 0)) : 0;
   return slideFrames + endPageFrames;
 }
@@ -1176,15 +1232,20 @@ function getVisibleSlideLayers(currentMs, timeline) {
   const visible = [];
 
   state.slides.forEach((slide, index) => {
-    const startMs = index * timeline.offsetMs;
-    const endMs = startMs + timeline.slideDurationMs;
+    const timing = timeline.slideTimings[index] || {
+      startMs: index * timeline.offsetMs,
+      endMs: (index * timeline.offsetMs) + timeline.slideDurationMs,
+      durationMs: timeline.slideDurationMs,
+    };
+    const startMs = timing.startMs;
+    const endMs = timing.endMs;
 
     if (currentMs < startMs || currentMs > endMs) {
       return;
     }
 
     const localMs = currentMs - startMs;
-    const progress = clamp(localMs / timeline.slideDurationMs, 0, 1);
+    const progress = clamp(localMs / timing.durationMs, 0, 1);
     const transitionType = getTransitionType(index);
     let opacity = 1;
     let filter = '';
@@ -1516,7 +1577,7 @@ function restartPreview(autoplay = state.previewPlaying) {
 
 function getChapterPositions() {
   const timeline = getPreviewTimeline();
-  const chapters = state.slides.map((_slide, index) => index * timeline.offsetMs);
+  const chapters = state.slides.map((_slide, index) => timeline.slideTimings[index]?.startMs ?? (index * timeline.offsetMs));
   if (timeline.endPageMs > 0) {
     chapters.push(timeline.slideEndMs);
   }
@@ -1556,15 +1617,13 @@ function selectSlide(slideId) {
   if (slideIndex >= 0) {
     renderSlides();
     if (hasExactPreviewPlayer()) {
-      const framesPerSlide = Math.floor(Number(state.slideDurationInSeconds || 5) * FPS);
-      const overlapFrames = 30;
-      const offsetFrames = framesPerSlide - overlapFrames;
-      window.DesktopRemotionPreview.seekTo(slideIndex * offsetFrames);
+      const timing = getPreviewTimeline().slideTimings[slideIndex];
+      window.DesktopRemotionPreview.seekTo(Math.round(((timing?.startMs || 0) / 1000) * FPS));
       return;
     }
 
     const timeline = getPreviewTimeline();
-    setPreviewPosition(slideIndex * timeline.offsetMs);
+    setPreviewPosition(timeline.slideTimings[slideIndex]?.startMs ?? (slideIndex * timeline.offsetMs));
     return;
   }
 
@@ -1847,6 +1906,8 @@ function buildRenderPayload() {
     slides: state.slides.map((slide) => ({
       id: slide.id,
       imagePath: slide.imagePath,
+      slideType: slide.slideType || 'content',
+      title: slide.title || '',
       text: slide.text || '',
       isMuted: slide.isMuted !== false,
       voiceoverPath: slide.voiceoverPath || null,
@@ -2151,7 +2212,7 @@ async function bootstrap() {
   try {
     const saved = await window.desktopApi.getSettings();
     if (saved && typeof saved === 'object') {
-      state.settings = { ...DEFAULT_SETTINGS, ...saved };
+      state.settings = normalizeSettings(saved);
     }
   } catch {
     // settings load failure is non-fatal
@@ -2496,7 +2557,10 @@ async function handleGenerateContentSlides() {
 
     // Populate the editable script textarea
     if (scriptPreview) {
-      scriptPreview.value = result.fullScript || result.slides.map((s) => s.voiceoverText || s.text || '').join('\n\n');
+      scriptPreview.value = result.fullScript || result.slides
+        .filter((s, index) => !isCoverSlide(s, index))
+        .map((s) => s.voiceoverText || s.text || '')
+        .join('\n\n');
       scriptPreview.placeholder = 'السكريبت الكامل للتعليق الصوتي...';
     }
 
@@ -2545,6 +2609,12 @@ async function handleGenerateScriptVoiceover() {
 
     state.voiceover = result.voiceoverPath;
     state.voiceoverDurationMs = result.durationMs || 0;
+    state.slideDurationInSeconds = calculateNarratedSlideDurationSeconds(state.voiceoverDurationMs);
+
+    const durationInput = document.getElementById('slide-duration-input');
+    if (durationInput) durationInput.value = state.slideDurationInSeconds.toFixed(1);
+    const contentDurationInput = document.getElementById('content-slide-duration');
+    if (contentDurationInput) contentDurationInput.value = state.slideDurationInSeconds.toFixed(1);
 
     const label = 'سكريبت المحتوى';
     if (elements.voiceoverFilename) {
@@ -2555,7 +2625,7 @@ async function handleGenerateScriptVoiceover() {
     markProjectDirty();
     renderPreviewFrame();
 
-    if (statusEl) statusEl.textContent = `✅ تم التوليد — ${(state.voiceoverDurationMs / 1000).toFixed(1)}ث`;
+    if (statusEl) statusEl.textContent = `✅ تم التوليد — ${(state.voiceoverDurationMs / 1000).toFixed(1)}ث، مدة الشريحة ${state.slideDurationInSeconds.toFixed(1)}ث`;
     setStatus('اكتمل', 'تم توليد صوت السكريبت بنجاح');
   } catch (err) {
     if (statusEl) statusEl.textContent = `❌ ${err.message}`;

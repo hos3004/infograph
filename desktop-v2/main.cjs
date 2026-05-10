@@ -144,6 +144,77 @@ function buildRuleBasedNarration(slideText, maxWords = 18) {
   return narration;
 }
 
+const SPECIAL_SLIDE_TYPES = new Set(['cover', 'content', 'question']);
+
+function cleanGeneratedText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function stripSlideSeparators(value) {
+  return cleanGeneratedText(value).split('++').map(cleanGeneratedText).filter(Boolean);
+}
+
+function textToQuestion(value, fallback) {
+  const parts = stripSlideSeparators(value);
+  const questionPart = parts.find((part) => /[؟?]/.test(part)) || cleanGeneratedText(value);
+  const question = cleanGeneratedText(questionPart || fallback || 'ما السؤال الأهم الذي لا يجيب عنه هذا الإنفوجراف؟');
+  return /[؟?]$/.test(question) ? question : `${question}؟`;
+}
+
+function inferCoverTitle(topic, slides) {
+  const first = slides.find((slide) => slide && slide.slideType !== 'question') || slides[0] || {};
+  const parts = stripSlideSeparators(first.text);
+  const candidate = cleanGeneratedText(first.title || parts[1] || parts[0] || topic);
+  return candidate.length > 90 ? `${candidate.slice(0, 87).trim()}...` : candidate;
+}
+
+function ensureOpeningAndClosingSlides(slides, { topic, count, voMaxWords }) {
+  const normalized = (Array.isArray(slides) ? slides : []).map((slide) => ({
+    ...slide,
+    slideType: SPECIAL_SLIDE_TYPES.has(slide.slideType) ? slide.slideType : 'content',
+  }));
+
+  const existingCover = normalized.find((slide) => slide.slideType === 'cover');
+  const existingQuestion = [...normalized].reverse().find((slide) => slide.slideType === 'question');
+  const contentSlides = normalized.filter((slide) => slide !== existingCover && slide !== existingQuestion);
+  const maxContentSlides = Math.max(1, count - 2);
+
+  const coverTitle = inferCoverTitle(topic, existingCover ? [existingCover] : contentSlides);
+  const cover = {
+    ...(existingCover || {}),
+    slideType: 'cover',
+    title: cleanGeneratedText(existingCover?.title || coverTitle),
+    text: cleanGeneratedText(existingCover?.title || coverTitle),
+    voiceoverText: truncateToWords(existingCover?.title || coverTitle, voMaxWords),
+    visualHint: cleanGeneratedText(existingCover?.visualHint || 'غلاف افتتاحي بعنوان كبير في منتصف الشاشة'),
+    imagePrompt: cleanGeneratedText(existingCover?.imagePrompt || 'Cinematic Arabic TV infographic title card, dramatic editorial lighting, no text, no logos'),
+  };
+
+  const defaultQuestion = 'ما السؤال الأهم الذي لا يجيب عنه هذا الإنفوجراف؟';
+  const questionText = textToQuestion(
+    existingQuestion?.text || existingQuestion?.title || existingQuestion?.voiceoverText,
+    defaultQuestion,
+  );
+  const question = {
+    ...(existingQuestion || {}),
+    slideType: 'question',
+    title: questionText,
+    text: questionText,
+    voiceoverText: truncateToWords(questionText, voMaxWords),
+    visualHint: cleanGeneratedText(existingQuestion?.visualHint || 'خاتمة بسؤال نقدي واحد فقط'),
+    imagePrompt: cleanGeneratedText(existingQuestion?.imagePrompt || 'Minimal cinematic Arabic TV infographic closing frame, thoughtful dramatic lighting, no text, no logos'),
+  };
+
+  return [
+    cover,
+    ...contentSlides.slice(0, maxContentSlides).map((slide) => ({
+      ...slide,
+      slideType: 'content',
+    })),
+    question,
+  ];
+}
+
 function pcmToWav(pcmBuffer, sampleRate = 24000, channels = 1, bitsPerSample = 16) {
   const byteRate = (sampleRate * channels * bitsPerSample) / 8;
   const blockAlign = (channels * bitsPerSample) / 8;
@@ -173,11 +244,13 @@ function parseSampleRate(mimeType) {
   return Number.isFinite(rate) && rate > 0 ? rate : 24000;
 }
 
-const DEFAULT_TTS_STYLE_PROMPT = 'Premium commercial. Dynamic pacing—starts intrigued, ends punchy. Tone is polished, persuasive, and inviting.';
+const LEGACY_TTS_STYLE_PROMPT = 'Premium commercial. Dynamic pacing—starts intrigued, ends punchy. Tone is polished, persuasive, and inviting.';
+const DEFAULT_TTS_STYLE_PROMPT = 'Arabic television documentary narrator. Speak in Modern Standard Arabic with a calm, authoritative news-report tone. Use a medium measured pace, clear articulation, and natural pauses between sentences and paragraphs. Do not rush. Sound like a serious TV report narrator, polished and informative, not commercial or promotional.';
 
 async function callGeminiTts(text, { apiKey, ttsModel, voiceName, stylePrompt }) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const style = (stylePrompt && stylePrompt.trim()) ? stylePrompt.trim() : DEFAULT_TTS_STYLE_PROMPT;
+  const requestedStyle = (stylePrompt && stylePrompt.trim()) ? stylePrompt.trim() : DEFAULT_TTS_STYLE_PROMPT;
+  const style = requestedStyle === LEGACY_TTS_STYLE_PROMPT ? DEFAULT_TTS_STYLE_PROMPT : requestedStyle;
   const ttsInstruction = `${style}\n\nRead aloud: ${text}`;
   const promptVariants = [ttsInstruction, `Read aloud: ${text}`];
 
@@ -689,7 +762,10 @@ ipcMain.handle('desktop:generate-single-voiceover', async (_event, payload) => {
   }
 
   try {
-    const normalizedText = text.replace(/\s+/g, ' ').trim();
+    const normalizedText = text
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
     const { data, mimeType } = await callGeminiTts(normalizedText, { apiKey, ttsModel, voiceName, stylePrompt });
 
     const pcmBuffer = Buffer.from(data, 'base64');
@@ -765,17 +841,22 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
   const voMaxWords = Math.max(8, Math.min(30, Number(payloadMaxWords) || 18));
   const preset = textPreset === 'automatic' ? 'news-ledger' : textPreset;
 
-  const userPrompt = `حوّل الموضوع التالي إلى ${count} شريحة إنفوجراف.
+  const userPrompt = `حوّل الموضوع التالي إلى ${count} شريحة إنفوجراف إجمالاً.
 
 أسلوب المحتوى: ${contentStyle}
 نمط حركة النص المُفضَّل: ${preset}
+
+ابدأ دائماً بشريحة غلاف واحدة فقط من نوع cover، تحتوي عنوان الإنفوجراف فقط.
+اختم دائماً بشريحة واحدة فقط من نوع question، تحتوي سؤالاً نقدياً واحداً فقط للمشاهد، بدون أي تفاصيل أو شرح.
+اجعل الشرائح بينهما من نوع content.
 
 ⚠️ قاعدة صارمة لـ voiceoverText: أقصى عدد مسموح هو ${voMaxWords} كلمة عربية فقط لكل شريحة — لا استثناءات.
 إذا كتبت أكثر من ${voMaxWords} كلمة فستُقطع تلقائياً. اكتب جملة واحدة قصيرة ومكثّفة فقط.
 
 لكل شريحة أعد:
+- slideType: واحدة من cover أو content أو question
 - title: عنوان داخلي مختصر
-- text: نص الشاشة — أربعة أجزاء قصيرة مفصولة بـ "++" (كيكر ++ عنوان ++ شرح ++ خلاصة)
+- text: نص الشاشة. في cover اكتب عنوان الإنفوجراف فقط. في content اكتب أربعة أجزاء قصيرة مفصولة بـ "++" (كيكر ++ عنوان ++ شرح ++ خلاصة). في question اكتب سؤالاً نقدياً واحداً فقط.
 - voiceoverText: جملة صوتية عربية واحدة، من ${Math.max(8, voMaxWords - 3)} إلى ${voMaxWords} كلمة كحد أقصى، تُعبّر عن جوهر الشريحة بأسلوب إذاعي طبيعي
 - imagePrompt: وصف بالإنجليزية لصورة سينمائية واقعية بدون نص أو شعارات
 - visualHint: توجيه بصري عربي مختصر
@@ -784,11 +865,28 @@ ipcMain.handle('desktop:generate-content-slides', async (_event, payload) => {
 {
   "slides": [
     {
+      "slideType": "cover",
+      "title": "عنوان الإنفوجراف",
+      "text": "عنوان الإنفوجراف",
+      "voiceoverText": "مقدمة صوتية قصيرة لعنوان الإنفوجراف.",
+      "imagePrompt": "English cinematic realistic visual prompt, no text, no logos",
+      "visualHint": "غلاف بصري"
+    },
+    {
+      "slideType": "content",
       "title": "عنوان داخلي",
       "text": "كيكر ++ عنوان قوي ++ شرح مختصر ++ خلاصة",
       "voiceoverText": "سكريبت صوتي عربي طبيعي من ${Math.max(8, voMaxWords - 3)}-${voMaxWords} كلمة لهذه الشريحة.",
       "imagePrompt": "English cinematic realistic visual prompt, no text, no logos",
       "visualHint": "توجيه بصري"
+    },
+    {
+      "slideType": "question",
+      "title": "سؤال نقدي؟",
+      "text": "سؤال نقدي واحد فقط؟",
+      "voiceoverText": "سؤال نقدي واحد فقط.",
+      "imagePrompt": "English cinematic realistic visual prompt, no text, no logos",
+      "visualHint": "خاتمة بسؤال"
     }
   ],
   "fullScript": "سكريبت الشريحة 1.\n\nسكريبت الشريحة 2.\n\n..."
@@ -819,7 +917,10 @@ ${topic}`;
     let parsed;
     try { parsed = JSON.parse(rawText); } catch { throw new Error('فشل تحليل JSON من النموذج'); }
 
-    const slides = Array.isArray(parsed.slides) ? parsed.slides : [];
+    const slides = ensureOpeningAndClosingSlides(
+      Array.isArray(parsed.slides) ? parsed.slides : [],
+      { topic, count, voMaxWords },
+    );
     if (slides.length === 0) throw new Error('لم تُولَّد أي شرائح');
 
     const placeholderPath = ensurePlaceholderPng();
@@ -839,6 +940,7 @@ ${topic}`;
 
     const mappedSlides = slides.map((s, i) => ({
       id: `generated-${now}-${i}`,
+      slideType: s.slideType || 'content',
       title: s.title || '',
       text: s.text || '',
       voiceoverText: reviewedVoiceovers[i] || rawVoiceovers[i],
@@ -849,7 +951,11 @@ ${topic}`;
       isMuted: true,
     }));
 
-    const fullScript = mappedSlides.map((s) => s.voiceoverText).filter(Boolean).join('\n\n');
+    const fullScript = mappedSlides
+      .filter((s) => s.slideType !== 'cover')
+      .map((s) => s.voiceoverText)
+      .filter(Boolean)
+      .join('\n\n');
 
     return { success: true, slides: mappedSlides, fullScript };
   } catch (err) {

@@ -27,13 +27,24 @@ export const MainComposition: React.FC<CompositionProps> = ({
   const framesPerSlide = Math.floor(slideDurationInSeconds * fps);
   const overlapFrames = 30; // 1-second slide-to-slide crossfade
   const validSlides = slides.filter(s => s.imageUrl);
+  const coverFrames = Math.round(3 * fps);
 
-  const offsetFrames = framesPerSlide - overlapFrames;
+  const slideTimings = validSlides.reduce<Array<{ start: number; duration: number }>>((acc, slide, index) => {
+    const duration = index === 0 && slide.slideType === 'cover' ? coverFrames : framesPerSlide;
+    const previous = acc[index - 1];
+    const start = previous ? previous.start + previous.duration - overlapFrames : 0;
+    acc.push({ start, duration });
+    return acc;
+  }, []);
+
   const EP_FRAMES = endPageDurationFrames ?? 0;
 
   // Frame at which all slides have finished
   const slideEndFrame = validSlides.length > 0
-    ? (validSlides.length * offsetFrames) + overlapFrames
+    ? Math.max(...slideTimings.map((timing) => timing.start + timing.duration))
+    : 0;
+  const voiceoverStartFrame = validSlides[0]?.slideType === 'cover' && slideTimings[1]
+    ? slideTimings[1].start
     : 0;
 
   // End-page crossfade: 2 seconds fade-in overlap with the last slide
@@ -55,12 +66,12 @@ export const MainComposition: React.FC<CompositionProps> = ({
 
       {/* ── 1. Slides ───────────────────────────────────────────── */}
       {validSlides.map((slide, i) => {
-        const startFrame = i * offsetFrames;
+        const timing = slideTimings[i];
         return (
           <Sequence
             key={slide.id}
-            from={startFrame}
-            durationInFrames={framesPerSlide}
+            from={timing.start}
+            durationInFrames={timing.duration}
             layout="none"
           >
             <Slide
@@ -137,17 +148,19 @@ export const MainComposition: React.FC<CompositionProps> = ({
       )}
 
       {voiceover && (
-        <Audio
-          src={voiceover}
-          volume={(frame) => {
-            const fadeStart = Math.max(0, durationInFrames - 45);
-            const baseVol = (typeof voiceoverVolume === 'number' && !isNaN(voiceoverVolume)) ? voiceoverVolume / 100 : 1;
-            if (fadeStart >= durationInFrames) return baseVol;
-            return interpolate(frame, [fadeStart, durationInFrames], [baseVol, 0], {
-              extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
-            });
-          }}
-        />
+        <Sequence from={voiceoverStartFrame} durationInFrames={Math.max(1, durationInFrames - voiceoverStartFrame)}>
+          <Audio
+            src={voiceover}
+            volume={(frame) => {
+              const fadeStart = Math.max(0, durationInFrames - voiceoverStartFrame - 45);
+              const baseVol = (typeof voiceoverVolume === 'number' && !isNaN(voiceoverVolume)) ? voiceoverVolume / 100 : 1;
+              if (fadeStart >= durationInFrames - voiceoverStartFrame) return baseVol;
+              return interpolate(frame, [fadeStart, durationInFrames - voiceoverStartFrame], [baseVol, 0], {
+                extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+              });
+            }}
+          />
+        </Sequence>
       )}
 
       {/* ── 5. Visual Effects ────────────────────────────────────── */}

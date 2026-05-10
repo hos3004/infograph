@@ -197,6 +197,8 @@ async function renderVideo(payload) {
       slides: normalized.slides.map((slide, index) => ({
         id: slide.id,
         imageUrl: mediaServer.urlFor(slideMediaKeys[index]),
+        slideType: slide.slideType,
+        title: slide.title,
         text: slide.text,
         isMuted: slide.isMuted,
         voiceoverUrl: slideVoiceoverKeys[index]

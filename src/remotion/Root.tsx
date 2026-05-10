@@ -39,7 +39,9 @@ export const RemotionRoot: React.FC = () => {
           const fps = 30;
           const framesPerSlide = Math.floor(props.slideDurationInSeconds * fps);
           const overlapFrames  = 30;
-          const validLength    = props.slides.filter(s => s.imageUrl).length;
+          const validSlides    = props.slides.filter(s => s.imageUrl);
+          const validLength    = validSlides.length;
+          const coverFrames    = Math.round(3 * fps);
 
           // Use the actual detected end-page duration passed from the UI
           const endPageFrames  = props.endPageDurationFrames ?? 0;
@@ -47,7 +49,13 @@ export const RemotionRoot: React.FC = () => {
 
           let totalDuration = framesPerSlide; // minimum: 1 slide
           if (validLength > 0) {
-            const slideEndFrame = (validLength * (framesPerSlide - overlapFrames)) + overlapFrames;
+            let currentStart = 0;
+            let slideEndFrame = 0;
+            validSlides.forEach((slide, index) => {
+              const duration = index === 0 && slide.slideType === 'cover' ? coverFrames : framesPerSlide;
+              slideEndFrame = Math.max(slideEndFrame, currentStart + duration);
+              currentStart += duration - overlapFrames;
+            });
             totalDuration = endPageFrames > 0 
               ? slideEndFrame + endPageFrames - EP_FADE_FRAMES
               : slideEndFrame;

@@ -1,6 +1,8 @@
 export type SlideData = {
   id: string;
   imageUrl: string;
+  slideType?: 'cover' | 'content' | 'question';
+  title?: string;
   text?: string;
   isMuted?: boolean;
   voiceoverText?: string;
