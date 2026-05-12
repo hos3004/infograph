@@ -797,6 +797,7 @@ async function regenerateSingleScene(sceneId) {
   const regenerated = normalizeScene({
     ...scene,
     ...result.scenes[0],
+    id: sceneId,
     mediaPath: scene.mediaPath,
     fileUrl: scene.fileUrl,
     mediaType: scene.mediaType,
