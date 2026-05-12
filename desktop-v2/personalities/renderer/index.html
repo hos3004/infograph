@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: file: blob: https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: file: blob:; media-src 'self' data: file: blob:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://unpkg.com;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personalities Generator Desktop V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg: #f4f1ec;
+      --surface: #ffffff;
+      --surface-r: #faf8f4;
+      --border: #e8e3da;
+      --border-s: #d4ccbf;
+      --accent: #5a9a6a;
+      --accent-dk: #3d7a4d;
+      --accent-lt: #eaf3ec;
+      --text: #1c1a18;
+      --text-mu: #7a736a;
+      --text-fa: #a89f96;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warn: #b45309;
+      --font: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+      --sh-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --sh-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow: hidden;
+    }
+
+    .v2-root {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100vh;
+      background: var(--bg);
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: var(--surface);
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--sh-sm);
+      flex-shrink: 0;
+    }
+
+    .logo-section,
+    .top-bar-btns,
+    .project-zone {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+    }
+
+    .brand-logo-image {
+      height: 54px;
+      object-fit: contain;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .project-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .project-icon-btn,
+    .icon-btn {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-r);
+      color: var(--text-mu);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s ease;
+      font-family: var(--font);
+    }
+
+    .project-icon-btn:hover,
+    .icon-btn:hover {
+      background: var(--accent-lt);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .project-icon-btn.is-dirty {
+      color: var(--warn);
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .project-icon-btn.is-saving {
+      color: var(--accent);
+    }
+
+    .project-status-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1.5px solid var(--surface);
+      opacity: 0;
+      background: var(--success);
+    }
+
+    .project-icon-btn.is-dirty .project-status-dot,
+    .project-icon-btn.is-saving .project-status-dot {
+      opacity: 1;
+    }
+
+    .project-icon-btn.is-dirty .project-status-dot { background: #f59e0b; }
+    .project-save-status {
+      color: var(--text-mu);
+      font-size: 0.76rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .nav-pills-wrap {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    .nav-pill {
+      padding: 0.28rem 0.8rem;
+      border-radius: 16px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-mu);
+      text-decoration: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-pill:hover { color: var(--text); }
+    .nav-pill-active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--sh-sm);
+    }
+
+    .main-content {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      min-height: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-sm);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .right-panel {
+      flex: 1.05;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .left-panel {
+      flex: 0.95;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      overflow: hidden;
+    }
+
+    .tabs-header {
+      display: flex;
+      min-height: 82px;
+      background: var(--surface-r);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text-mu);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.45); }
+    .tab-btn.active { color: var(--text); background: var(--surface); box-shadow: inset 0 -3px 0 var(--accent); }
+
+    .tab-panels {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tab-panel {
+      display: none;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0.85rem;
+    }
+
+    .tab-panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .panel-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-mu);
+      margin: 0 0 0.45rem;
+    }
+
+    .setting-group {
+      background: var(--surface-r);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 0.9rem;
+    }
+
+    .setting-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.45rem;
+    }
+
+    .input-v2,
+    .textarea-v2,
+    .number-input,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.88rem;
+      padding: 0.62rem 0.75rem;
+      outline: none;
+    }
+
+    .input-v2:focus,
+    .textarea-v2:focus,
+    .number-input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(90,154,106,0.12);
+    }
+
+    .textarea-v2 {
+      min-height: 92px;
+      resize: vertical;
+      line-height: 1.65;
+    }
+
+    .grid-2,
+    .grid-3 {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .btn-primary,
+    .btn-secondary {
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 0.87rem;
+      font-weight: 700;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 40px;
+      padding: 0.6rem 0.95rem;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+
+    .btn-secondary {
+      background: var(--surface-r);
+      color: var(--text-mu);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg);
+      color: var(--text);
+      border-color: var(--border-s);
+    }
+
+    .btn-secondary.is-success {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #86efac;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .scene-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .scene-card.is-open {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(90,154,106,0.12);
+    }
+
+    .scene-row,
+    .media-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .scene-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .scene-subtitle,
+    .muted-text {
+      color: var(--text-mu);
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .scene-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      justify-content: flex-end;
+    }
+
+    .scene-details {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+      border-top: 1px dashed var(--border);
+      padding-top: 0.75rem;
+    }
+
+    .scene-card.is-open .scene-details { display: flex; }
+
+    .media-thumb {
+      width: 172px;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #0c111d;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 0.5rem;
+    }
+
+    .media-thumb img,
+    .media-thumb video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: 1px solid #e5e7eb;
+    }
+
+    .badge.success {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #86efac;
+    }
+
+    .badge.warn {
+      background: #fffbeb;
+      color: var(--warn);
+      border-color: #fde68a;
+    }
+
+    .empty-state {
+      border: 2px dashed var(--border-s);
+      border-radius: var(--r-md);
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--text-fa);
+      font-weight: 600;
+      background: #fcfbf8;
+    }
+
+    .preview-card,
+    .status-card {
+      display: flex;
+      flex-direction: column;
+      padding: 0.9rem;
+    }
+
+    .preview-card { flex: 1; min-height: 0; }
+    .status-card { gap: 0.8rem; }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .preview-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #preview-exact-root,
+    #preview-exact-root > div {
+      width: 100%;
+      height: 100%;
+    }
+
+    .progress-shell {
+      width: 100%;
+      height: 10px;
+      background: #ebe6dd;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #7cb08a);
+      border-radius: 999px;
+      transition: width 0.2s ease;
+    }
+
+    .progress-row,
+    .status-row,
+    .render-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .render-actions {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+    #render-result {
+      color: var(--text-mu);
+      font-size: 0.82rem;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    @media (max-width: 1180px) {
+      .main-content {
+        flex-direction: column;
+      }
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .media-row,
+      .scene-row {
+        flex-direction: column;
+      }
+
+      .media-thumb {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="v2-root">
+    <div class="top-bar">
+      <div class="logo-section">
+        <img id="brand-logo" class="brand-logo-image" alt="فيدابيوغراف" />
+      </div>
+
+      <div class="top-bar-btns">
+        <div class="nav-pills-wrap">
+          <a href="../../renderer/index.html" class="nav-pill">الأنفوجراف</a>
+          <a href="../../motadawel/renderer/index.html" class="nav-pill">المتداول</a>
+          <a href="./index.html" class="nav-pill nav-pill-active">شخصيات</a>
+        </div>
+      </div>
+
+      <div class="project-zone">
+        <span id="project-save-status" class="project-save-status">مشروع جديد</span>
+        <div class="project-actions">
+          <button id="project-open-btn" class="project-icon-btn" type="button" title="فتح مشروع" aria-label="فتح مشروع">
+            <span class="project-status-dot"></span>
+            <i data-lucide="folder-open" style="width:18px;height:18px;"></i>
+          </button>
+          <button id="project-save-btn" class="project-icon-btn" type="button" title="حفظ المشروع" aria-label="حفظ المشروع">
+            <span class="project-status-dot"></span>
+            <i data-lucide="save" style="width:18px;height:18px;"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="right-panel panel">
+        <div class="tabs-header">
+          <button class="tab-btn" data-target="tab-slides">
+            <i data-lucide="images" style="width:20px;height:20px;"></i>
+            <span>الشرائح</span>
+          </button>
+          <button class="tab-btn" data-target="tab-audio">
+            <i data-lucide="music-4" style="width:20px;height:20px;"></i>
+            <span>الصوتيات</span>
+          </button>
+          <button class="tab-btn active" data-target="tab-content">
+            <i data-lucide="scroll-text" style="width:20px;height:20px;"></i>
+            <span>محتوى</span>
+          </button>
+        </div>
+
+        <div class="tab-panels">
+          <section id="tab-slides" class="tab-panel">
+            <div class="setting-group">
+              <div class="setting-label">
+                <span>ربط الوسائط بالمشاهد</span>
+                <span id="slides-summary" class="muted-text"></span>
+              </div>
+              <div id="slides-list"></div>
+            </div>
+          </section>
+
+          <section id="tab-audio" class="tab-panel">
+            <div class="setting-group">
+              <div class="grid-2">
+                <label>
+                  <span class="setting-label">الموسيقى الخلفية</span>
+                  <select id="music-select"></select>
+                </label>
+                <label>
+                  <span class="setting-label">شاشة النهاية</span>
+                  <select id="endpage-select"></select>
+                </label>
+              </div>
+              <div class="grid-2" style="margin-top:0.75rem;">
+                <label>
+                  <span class="setting-label">مستوى الموسيقى <span id="music-volume-value">30%</span></span>
+                  <input id="music-volume-input" class="number-input" type="range" min="0" max="100" step="1" value="30" />
+                </label>
+                <label>
+                  <span class="setting-label">مستوى التعليق <span id="voiceover-volume-value">100%</span></span>
+                  <input id="voiceover-volume-input" class="number-input" type="range" min="0" max="100" step="1" value="100" />
+                </label>
+              </div>
+              <div id="endpage-duration-hint" class="muted-text" style="margin-top:0.6rem;"></div>
+            </div>
+
+            <div class="setting-group">
+              <div class="status-row">
+                <div>
+                  <div class="panel-title">تعليق المشاهد</div>
+                  <div class="muted-text">توليد أو إرفاق لكل مشهد</div>
+                </div>
+                <button id="generate-all-voiceovers-btn" class="btn-primary" type="button">
+                  <i data-lucide="mic" style="width:16px;height:16px;"></i>
+                  توليد الكل
+                </button>
+              </div>
+              <div id="audio-list" style="margin-top:0.75rem;"></div>
+            </div>
+          </section>
+
+          <section id="tab-content" class="tab-panel active">
+            <div class="setting-group">
+              <label>
+                <span class="setting-label">السيرة أو النص العربي</span>
+                <textarea id="source-script-input" class="textarea-v2" style="min-height:180px;" placeholder="ألصق السيرة هنا..."></textarea>
+              </label>
+
+              <div class="grid-3" style="margin-top:0.75rem;">
+                <label>
+                  <span class="setting-label">عدد المشاهد</span>
+                  <input id="scene-count-input" class="number-input" type="number" min="1" max="20" step="1" value="8" />
+                </label>
+                <label>
+                  <span class="setting-label">مدة المشهد</span>
+                  <select id="scene-duration-select">
+                    <option value="5">5 ثوانٍ</option>
+                    <option value="8" selected>8 ثوانٍ</option>
+                    <option value="10">10 ثوانٍ</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="setting-label">نسبة الأبعاد</span>
+                  <select id="aspect-ratio-select">
+                    <option value="16:9" selected>16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="1:1">1:1</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="grid-2" style="margin-top:0.75rem;">
+                <label>
+                  <span class="setting-label">الطابع الوثائقي</span>
+                  <input id="documentary-style-input" class="input-v2" type="text" value="وثائقي عربي واقعي" />
+                </label>
+                <label>
+                  <span class="setting-label">اللغة / اللهجة</span>
+                  <input id="language-dialect-input" class="input-v2" type="text" value="العربية الفصحى" />
+                </label>
+              </div>
+
+              <div class="grid-2" style="margin-top:0.75rem;">
+                <label>
+                  <span class="setting-label">ملاحظات الشخصية</span>
+                  <textarea id="character-notes-input" class="textarea-v2" placeholder="ملاحظات المظهر والاستمرارية..."></textarea>
+                </label>
+                <label>
+                  <span class="setting-label">قواعد بصرية عامة</span>
+                  <textarea id="visual-rules-input" class="textarea-v2" placeholder="تعليمات عامة للصورة والحركة..."></textarea>
+                </label>
+              </div>
+
+              <div class="grid-2" style="margin-top:0.75rem;">
+                <label>
+                  <span class="setting-label">قواعد مشاهد السجن</span>
+                  <textarea id="prison-rules-input" class="textarea-v2" placeholder="إن وجدت..."></textarea>
+                </label>
+                <label>
+                  <span class="setting-label">Negative Prompt</span>
+                  <textarea id="negative-prompt-input" class="textarea-v2" placeholder="No text, no logos, no fantasy..."></textarea>
+                </label>
+              </div>
+
+              <div class="render-actions" style="margin-top:0.8rem;">
+                <button id="generate-scenes-btn" class="btn-primary" type="button">
+                  <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
+                  تقسيم المشاهد
+                </button>
+                <span id="content-status" class="muted-text"></span>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <div class="setting-label">
+                <span>المشاهد المولدة</span>
+                <span id="runtime-summary" class="muted-text"></span>
+              </div>
+              <div id="content-scenes-list"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="left-panel">
+        <div class="preview-card panel">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">المعاينة</h2>
+              <div id="preview-summary" class="muted-text">لا توجد مشاهد بعد</div>
+            </div>
+          </div>
+          <div id="preview-stage" class="preview-stage">
+            <div id="preview-exact-root"></div>
+          </div>
+        </div>
+
+        <div class="status-card panel">
+          <div class="status-row">
+            <div>
+              <div id="status-title" class="card-title" style="font-size:0.98rem;">جاهز</div>
+              <div id="status-message" class="muted-text"></div>
+            </div>
+            <button id="open-output-btn" class="btn-secondary" type="button">
+              <i data-lucide="folder-open" style="width:16px;height:16px;"></i>
+              مجلد الإخراج
+            </button>
+          </div>
+
+          <div class="progress-row">
+            <span id="progress-label" class="muted-text">جاهز</span>
+            <span id="progress-percent" class="muted-text">0%</span>
+          </div>
+          <div class="progress-shell">
+            <div id="progress-bar" class="progress-fill"></div>
+          </div>
+
+          <div class="render-actions">
+            <button id="render-btn" class="btn-primary" type="button">
+              <i data-lucide="film" style="width:16px;height:16px;"></i>
+              رندر الفيديو
+            </button>
+            <button id="cancel-render-btn" class="btn-secondary btn-danger" type="button" style="display:none;">
+              <i data-lucide="square" style="width:16px;height:16px;"></i>
+              إيقاف
+            </button>
+          </div>
+
+          <div id="render-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./generated/preview-player-personalities.js"></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

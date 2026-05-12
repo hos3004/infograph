@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   bootstrap: () => ipcRenderer.invoke('desktop:bootstrap'),
   pickSlides: () => ipcRenderer.invoke('desktop:pick-slides'),
   pickSlideImage: () => ipcRenderer.invoke('desktop:pick-slide-image'),
+  pickPersonalityMedia: () => ipcRenderer.invoke('desktop:pick-personality-media'),
   pickMainVideo: () => ipcRenderer.invoke('desktop:pick-main-video'),
   pickVoiceover: () => ipcRenderer.invoke('desktop:pick-voiceover'),
   refreshAssets: () => ipcRenderer.invoke('desktop:refresh-assets'),
@@ -22,6 +23,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   generateSingleVoiceover: (payload) => ipcRenderer.invoke('desktop:generate-single-voiceover', payload),
   generateVoiceovers: (payload) => ipcRenderer.invoke('desktop:generate-voiceovers', payload),
   generateContentSlides: (payload) => ipcRenderer.invoke('desktop:generate-content-slides', payload),
+  generatePersonalityScenes: (payload) => ipcRenderer.invoke('desktop:generate-personality-scenes', payload),
   onRenderProgress: (listener) => {
     const channel = (_event, payload) => listener(payload, payload);
     ipcRenderer.on('desktop:render-progress', channel);

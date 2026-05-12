@@ -302,18 +302,29 @@ function clearPendingRequests(errorMessage, targetWorkerName = null) {
 
 let renderWorkerInfograph = null;
 let renderWorkerMotadawel = null;
+let renderWorkerPersonalities = null;
 
 function spawnRenderWorker(model) {
-  const isMotadawel = model === 'motadawel';
-  let activeWorker = isMotadawel ? renderWorkerMotadawel : renderWorkerInfograph;
+  const workerModel = model === 'personalities'
+    ? 'personalities'
+    : model === 'motadawel'
+      ? 'motadawel'
+      : 'infograph';
+  let activeWorker = workerModel === 'motadawel'
+    ? renderWorkerMotadawel
+    : workerModel === 'personalities'
+      ? renderWorkerPersonalities
+      : renderWorkerInfograph;
 
   if (activeWorker && !activeWorker.killed) {
     return activeWorker;
   }
 
-  const workerEntry = isMotadawel
+  const workerEntry = workerModel === 'motadawel'
     ? path.join(desktopPaths.codeRoot, 'motadawel', 'worker', 'render-worker-motadawel.cjs')
-    : desktopPaths.workerScript;
+    : workerModel === 'personalities'
+      ? path.join(desktopPaths.codeRoot, 'personalities', 'worker', 'render-worker-personalities.cjs')
+      : desktopPaths.workerScript;
 
   const workerCwd = app.isPackaged ? desktopPaths.appHome : desktopPaths.repoRoot;
 
@@ -330,7 +341,7 @@ function spawnRenderWorker(model) {
     windowsHide: true,
   });
 
-  const workerName = isMotadawel ? 'motadawel' : 'infograph';
+  const workerName = workerModel;
 
   newWorker.stdout.on('data', (data) => {
     writeWorkerLog(`stdout[${workerName}]`, data.toString().trim());
@@ -343,7 +354,8 @@ function spawnRenderWorker(model) {
   newWorker.on('error', (error) => {
     writeWorkerLog(`spawn-error[${workerName}]`, error.stack || error.message);
     clearPendingRequests(`Failed to start ${workerName} render worker: ${error.message}`, workerName);
-    if (isMotadawel) renderWorkerMotadawel = null;
+    if (workerModel === 'motadawel') renderWorkerMotadawel = null;
+    else if (workerModel === 'personalities') renderWorkerPersonalities = null;
     else renderWorkerInfograph = null;
   });
 
@@ -373,11 +385,13 @@ function spawnRenderWorker(model) {
   newWorker.on('exit', (code, signal) => {
     writeWorkerLog(`exit[${workerName}]`, `code=${code ?? 'null'} signal=${signal ?? 'null'}`);
     clearPendingRequests(`${workerName} worker stopped unexpectedly`, workerName);
-    if (isMotadawel) renderWorkerMotadawel = null;
+    if (workerModel === 'motadawel') renderWorkerMotadawel = null;
+    else if (workerModel === 'personalities') renderWorkerPersonalities = null;
     else renderWorkerInfograph = null;
   });
 
-  if (isMotadawel) renderWorkerMotadawel = newWorker;
+  if (workerModel === 'motadawel') renderWorkerMotadawel = newWorker;
+  else if (workerModel === 'personalities') renderWorkerPersonalities = newWorker;
   else renderWorkerInfograph = newWorker;
 
   return newWorker;
@@ -388,7 +402,11 @@ function requestWorker(action, payload) {
     const activeWorker = spawnRenderWorker(payload?.model);
 
     const id = `req-${Date.now()}-${++requestCounter}`;
-    const workerName = payload?.model === 'motadawel' ? 'motadawel' : 'infograph';
+    const workerName = payload?.model === 'personalities'
+      ? 'personalities'
+      : payload?.model === 'motadawel'
+        ? 'motadawel'
+        : 'infograph';
     pendingRequests.set(id, { resolve, reject, workerName });
 
     if (!activeWorker || !activeWorker.connected) {
@@ -570,6 +588,24 @@ ipcMain.handle('desktop:pick-slide-image', async () => {
   };
 });
 
+ipcMain.handle('desktop:pick-personality-media', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select scene media',
+    filters: [{ name: 'Media', extensions: ['png', 'jpg', 'jpeg', 'webp', 'mp4', 'mov', 'webm', 'm4v', 'mkv'] }],
+    properties: ['openFile'],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  const filePath = result.filePaths[0];
+  return {
+    path: filePath,
+    url: toFileUrl(filePath),
+  };
+});
+
 ipcMain.handle('desktop:pick-main-video', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Select main video',
@@ -617,8 +653,16 @@ ipcMain.handle('desktop:render', async (_event, payload) => {
 });
 
 ipcMain.handle('desktop:cancel-render', async (_event, payload) => {
-  const workerName = payload?.model === 'motadawel' ? 'motadawel' : 'infograph';
-  const worker = workerName === 'motadawel' ? renderWorkerMotadawel : renderWorkerInfograph;
+  const workerName = payload?.model === 'personalities'
+    ? 'personalities'
+    : payload?.model === 'motadawel'
+      ? 'motadawel'
+      : 'infograph';
+  const worker = workerName === 'motadawel'
+    ? renderWorkerMotadawel
+    : workerName === 'personalities'
+      ? renderWorkerPersonalities
+      : renderWorkerInfograph;
   if (worker && !worker.killed) {
     worker.kill('SIGINT');
     writeWorkerLog(`cancel[${workerName}]`, 'Render worker killed by user');
@@ -857,6 +901,208 @@ ${topic}`;
   }
 });
 
+ipcMain.handle('desktop:generate-personality-scenes', async (_event, payload) => {
+  const {
+    sourceScript,
+    sceneCount = 8,
+    sceneDurationSeconds = 8,
+    aspectRatio = '16:9',
+    documentaryStylePreset = 'وثائقي عربي',
+    mainCharacterNotes = '',
+    globalVisualRules = '',
+    prisonSceneRules = '',
+    negativePrompt = '',
+    languageOrDialect = 'العربية الفصحى',
+    apiKey: payloadKey,
+    model: payloadModel,
+    systemPrompt: payloadPrompt,
+    regenerateScene = false,
+    sceneNumber = 1,
+    existingScene = null,
+    totalScenes = null,
+  } = payload || {};
+
+  if (!sourceScript || !String(sourceScript).trim()) {
+    return { success: false, error: 'يرجى إدخال السيرة أو النص العربي أولاً.' };
+  }
+
+  let apiKey = payloadKey && payloadKey.trim() ? payloadKey.trim() : null;
+  let contentModel = payloadModel && payloadModel.trim() ? payloadModel.trim() : null;
+  let systemPrompt = payloadPrompt && payloadPrompt.trim() ? payloadPrompt.trim() : null;
+
+  try {
+    const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
+    const saved = JSON.parse(raw);
+    if (!apiKey) apiKey = saved.geminiApiKey || null;
+    if (!contentModel) contentModel = saved.contentModel || null;
+  } catch {}
+
+  if (!apiKey) {
+    apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_TTS_API_KEY || null;
+  }
+  if (!apiKey) {
+    return { success: false, error: 'مفتاح Gemini API مفقود. أضفه في إعدادات البرنامج (⚙️).' };
+  }
+
+  contentModel = contentModel || 'gemini-2.5-flash';
+  systemPrompt = systemPrompt || `You are a professional documentary scene planner and cinematic prompt writer.
+Your task is to transform a long Arabic biography script into a fixed number of coherent documentary video scenes.
+
+Rules:
+- Return valid JSON only.
+- Do not add facts that are not present in the script.
+- Preserve chronological order.
+- Respect the requested number of scenes exactly.
+- Each scene must represent one clear narrative beat.
+- Voiceover text must be in Arabic.
+- Image prompts must be in English.
+- Motion prompts must be in English.
+- Every image prompt must begin with: Scene XX — Image Prompt:
+- Every motion prompt must begin with: Scene XX — Motion Prompt:
+- Do not include visible text, readable writing, subtitles, logos, signs, banners, or watermarks inside the image.
+- Maintain visual continuity for the main character.
+- If the user provides main character notes, repeat them naturally inside every image prompt.
+- Respect age stage, time period, location, costume, and environment.
+- For prison scenes, strictly follow the prison scene rules provided by the user.
+- Keep the visual style cinematic, realistic, emotional, and documentary.
+- Do not create graphic violence.
+- Avoid exaggerated fantasy or unrealistic visuals.
+
+Return exactly this JSON shape:
+{
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "title": "",
+      "sourceExcerpt": "",
+      "ageStage": "",
+      "timePeriod": "",
+      "location": "",
+      "voiceoverText": "",
+      "imagePrompt": "",
+      "motionPrompt": "",
+      "visualContinuityNotes": ""
+    }
+  ]
+}`;
+
+  const normalizedCount = regenerateScene
+    ? 1
+    : Math.max(1, Math.min(20, Number(sceneCount) || 8));
+
+  const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  const buildPromptWithPrefix = (kind, value, currentSceneNumber) => {
+    const prefix = `Scene ${String(currentSceneNumber).padStart(2, '0')} — ${kind}:`;
+    const cleanedValue = clean(value);
+    if (cleanedValue.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return cleanedValue;
+    }
+    return `${prefix} ${cleanedValue}`.trim();
+  };
+
+  const userPrompt = regenerateScene
+    ? `Regenerate exactly one documentary scene as JSON only.
+
+Global context:
+- Full Arabic biography script:
+${sourceScript}
+- Total scenes in the project: ${Math.max(1, Number(totalScenes || sceneCount || 1))}
+- Scene duration target: ${sceneDurationSeconds} seconds
+- Aspect ratio: ${aspectRatio}
+- Documentary style preset: ${documentaryStylePreset}
+- Main character notes: ${mainCharacterNotes || 'None'}
+- Global visual rules: ${globalVisualRules || 'None'}
+- Prison scene rules: ${prisonSceneRules || 'None'}
+- Negative prompt: ${negativePrompt || 'None'}
+- Language / dialect: ${languageOrDialect}
+
+Regenerate only scene ${Math.max(1, Number(sceneNumber || 1))}.
+Use this scene excerpt as the main narrative source:
+${existingScene?.sourceExcerpt || existingScene?.voiceoverText || existingScene?.title || ''}
+
+Existing scene title for context:
+${existingScene?.title || ''}`
+    : `Transform the following Arabic biography script into exactly ${normalizedCount} documentary scenes as JSON only.
+
+Project settings:
+- Target scene count: ${normalizedCount}
+- Target scene duration: ${sceneDurationSeconds} seconds
+- Aspect ratio: ${aspectRatio}
+- Documentary style preset: ${documentaryStylePreset}
+- Main character notes: ${mainCharacterNotes || 'None'}
+- Global visual rules: ${globalVisualRules || 'None'}
+- Prison scene rules: ${prisonSceneRules || 'None'}
+- Negative prompt: ${negativePrompt || 'None'}
+- Language / dialect: ${languageOrDialect}
+
+Arabic biography script:
+${sourceScript}`;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${contentModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: regenerateScene ? 0.55 : 0.7 },
+      }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result?.error?.message || `HTTP ${res.status}`);
+
+    const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error('لم يُرجع النموذج أي مشاهد.');
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      throw new Error('فشل تحليل JSON من Gemini.');
+    }
+
+    const scenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+    if (!scenes.length) {
+      throw new Error('لم يتم توليد أي مشاهد.');
+    }
+    if (!regenerateScene && scenes.length !== normalizedCount) {
+      throw new Error(`عاد Gemini بعدد ${scenes.length} مشهد بدلاً من ${normalizedCount}.`);
+    }
+    if (regenerateScene && scenes.length !== 1) {
+      throw new Error('إعادة التوليد أعادت أكثر من مشهد واحد.');
+    }
+
+    const normalizedScenes = scenes.map((scene, index) => {
+      const currentSceneNumber = regenerateScene
+        ? Math.max(1, Number(sceneNumber || 1))
+        : Math.max(1, Number(scene.sceneNumber || index + 1));
+
+      return {
+        id: `personality-scene-${Date.now()}-${index}`,
+        sceneNumber: currentSceneNumber,
+        title: clean(scene.title),
+        sourceExcerpt: clean(scene.sourceExcerpt),
+        ageStage: clean(scene.ageStage),
+        timePeriod: clean(scene.timePeriod),
+        location: clean(scene.location),
+        voiceoverText: String(scene.voiceoverText || '').trim(),
+        imagePrompt: buildPromptWithPrefix('Image Prompt', scene.imagePrompt, currentSceneNumber),
+        motionPrompt: buildPromptWithPrefix('Motion Prompt', scene.motionPrompt, currentSceneNumber),
+        visualContinuityNotes: clean(scene.visualContinuityNotes),
+        copiedImagePrompt: false,
+        copiedMotionPrompt: false,
+      };
+    });
+
+    return { success: true, scenes: normalizedScenes };
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+});
+
 ipcMain.handle('desktop:generate-voiceovers', async (_event, payload) => {
   const {
     slides = [],
@@ -941,5 +1187,8 @@ app.on('before-quit', () => {
   }
   if (renderWorkerMotadawel && !renderWorkerMotadawel.killed) {
     renderWorkerMotadawel.kill();
+  }
+  if (renderWorkerPersonalities && !renderWorkerPersonalities.killed) {
+    renderWorkerPersonalities.kill();
   }
 });

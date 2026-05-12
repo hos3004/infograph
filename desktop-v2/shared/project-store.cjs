@@ -18,6 +18,13 @@ const PROJECT_CONFIGS = {
     displayName: 'Motadawel',
     dialogName: 'Motadawel Project',
   },
+  personalities: {
+    projectType: 'personalities',
+    extension: '.chp',
+    extensionName: 'chp',
+    displayName: 'Personalities',
+    dialogName: 'Personalities Project',
+  },
 };
 
 function getProjectConfig(projectType) {
@@ -29,6 +36,9 @@ function getProjectConfig(projectType) {
 }
 
 function inferProjectConfigFromUrl(url = '') {
+  if (/[\\/]personalities[\\/]renderer[\\/]|\/personalities\/renderer\//i.test(url)) {
+    return PROJECT_CONFIGS.personalities;
+  }
   return /[\\/]motadawel[\\/]renderer[\\/]|\/motadawel\/renderer\//i.test(url)
     ? PROJECT_CONFIGS.motadawel
     : PROJECT_CONFIGS.infograph;
