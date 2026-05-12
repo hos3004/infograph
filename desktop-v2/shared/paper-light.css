@@ -1,0 +1,172 @@
+:root {
+  --bg: #f4f1ec;
+  --surface: #ffffff;
+  --surface-r: #faf8f4;
+  --border: #e8e3da;
+  --border-s: #d4ccbf;
+  --accent: #5a9a6a;
+  --accent-dk: #3d7a4d;
+  --accent-lt: #eaf3ec;
+  --text: #1c1a18;
+  --text-mu: #7a736a;
+  --text-fa: #a89f96;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --font: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --sh-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --sh-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --sh-lg: 0 20px 60px rgba(0,0,0,0.20);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+}
+
+body.paper-light-body {
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.paper-light-body .container {
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.paper-light-body .header,
+.paper-light-body footer {
+  display: none !important;
+}
+
+.paper-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--sh-sm);
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.paper-logo-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.paper-brand-logo-image {
+  height: 54px;
+  object-fit: contain;
+  display: block;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.paper-project-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: 4px;
+}
+
+.paper-project-icon-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-r);
+  color: var(--text-mu);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  font-family: var(--font);
+}
+
+.paper-project-icon-btn:hover {
+  background: var(--accent-lt);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.paper-project-icon-btn.is-dirty {
+  color: #b45309;
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.paper-project-icon-btn.is-saving {
+  color: var(--accent);
+}
+
+.paper-project-status-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface);
+  opacity: 0;
+  background: var(--success);
+}
+
+.paper-project-icon-btn.is-dirty .paper-project-status-dot,
+.paper-project-icon-btn.is-saving .paper-project-status-dot {
+  opacity: 1;
+}
+
+.paper-project-icon-btn.is-dirty .paper-project-status-dot {
+  background: #f59e0b;
+}
+
+.paper-project-save-status {
+  color: var(--text-mu);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.paper-top-bar-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.paper-nav-pills-wrap {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.paper-nav-pill {
+  padding: 0.28rem 0.8rem;
+  border-radius: 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text-mu);
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: var(--font);
+}
+
+.paper-nav-pill:hover {
+  color: var(--text);
+}
+
+.paper-nav-pill-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--sh-sm);
+}

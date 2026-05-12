@@ -18,6 +18,13 @@ const PROJECT_CONFIGS = {
     displayName: 'Motadawel',
     dialogName: 'Motadawel Project',
   },
+  laqtat: {
+    projectType: 'laqtat',
+    extension: '.lqt',
+    extensionName: 'lqt',
+    displayName: 'Laqtat',
+    dialogName: 'Laqtat Project',
+  },
 };
 
 function getProjectConfig(projectType) {
@@ -29,6 +36,9 @@ function getProjectConfig(projectType) {
 }
 
 function inferProjectConfigFromUrl(url = '') {
+  if (/[\\/]laqtat[\\/]renderer[\\/]|\/laqtat\/renderer\//i.test(url)) {
+    return PROJECT_CONFIGS.laqtat;
+  }
   return /[\\/]motadawel[\\/]renderer[\\/]|\/motadawel\/renderer\//i.test(url)
     ? PROJECT_CONFIGS.motadawel
     : PROJECT_CONFIGS.infograph;

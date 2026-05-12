@@ -375,18 +375,25 @@ function clearPendingRequests(errorMessage, targetWorkerName = null) {
 
 let renderWorkerInfograph = null;
 let renderWorkerMotadawel = null;
+let renderWorkerLaqtat = null;
 
 function spawnRenderWorker(model) {
-  const isMotadawel = model === 'motadawel';
-  let activeWorker = isMotadawel ? renderWorkerMotadawel : renderWorkerInfograph;
+  const workerModel = model === 'laqtat' ? 'laqtat' : model === 'motadawel' ? 'motadawel' : 'infograph';
+  let activeWorker = workerModel === 'motadawel'
+    ? renderWorkerMotadawel
+    : workerModel === 'laqtat'
+      ? renderWorkerLaqtat
+      : renderWorkerInfograph;
 
   if (activeWorker && !activeWorker.killed) {
     return activeWorker;
   }
 
-  const workerEntry = isMotadawel
+  const workerEntry = workerModel === 'motadawel'
     ? path.join(desktopPaths.codeRoot, 'motadawel', 'worker', 'render-worker-motadawel.cjs')
-    : desktopPaths.workerScript;
+    : workerModel === 'laqtat'
+      ? path.join(desktopPaths.codeRoot, 'laqtat', 'worker', 'render-worker-laqtat.cjs')
+      : desktopPaths.workerScript;
 
   const workerCwd = app.isPackaged ? desktopPaths.appHome : desktopPaths.repoRoot;
 
@@ -403,7 +410,7 @@ function spawnRenderWorker(model) {
     windowsHide: true,
   });
 
-  const workerName = isMotadawel ? 'motadawel' : 'infograph';
+  const workerName = workerModel;
 
   newWorker.stdout.on('data', (data) => {
     writeWorkerLog(`stdout[${workerName}]`, data.toString().trim());
@@ -416,7 +423,8 @@ function spawnRenderWorker(model) {
   newWorker.on('error', (error) => {
     writeWorkerLog(`spawn-error[${workerName}]`, error.stack || error.message);
     clearPendingRequests(`Failed to start ${workerName} render worker: ${error.message}`, workerName);
-    if (isMotadawel) renderWorkerMotadawel = null;
+    if (workerModel === 'motadawel') renderWorkerMotadawel = null;
+    else if (workerModel === 'laqtat') renderWorkerLaqtat = null;
     else renderWorkerInfograph = null;
   });
 
@@ -446,11 +454,13 @@ function spawnRenderWorker(model) {
   newWorker.on('exit', (code, signal) => {
     writeWorkerLog(`exit[${workerName}]`, `code=${code ?? 'null'} signal=${signal ?? 'null'}`);
     clearPendingRequests(`${workerName} worker stopped unexpectedly`, workerName);
-    if (isMotadawel) renderWorkerMotadawel = null;
+    if (workerModel === 'motadawel') renderWorkerMotadawel = null;
+    else if (workerModel === 'laqtat') renderWorkerLaqtat = null;
     else renderWorkerInfograph = null;
   });
 
-  if (isMotadawel) renderWorkerMotadawel = newWorker;
+  if (workerModel === 'motadawel') renderWorkerMotadawel = newWorker;
+  else if (workerModel === 'laqtat') renderWorkerLaqtat = newWorker;
   else renderWorkerInfograph = newWorker;
 
   return newWorker;
@@ -461,7 +471,11 @@ function requestWorker(action, payload) {
     const activeWorker = spawnRenderWorker(payload?.model);
 
     const id = `req-${Date.now()}-${++requestCounter}`;
-    const workerName = payload?.model === 'motadawel' ? 'motadawel' : 'infograph';
+    const workerName = payload?.model === 'laqtat'
+      ? 'laqtat'
+      : payload?.model === 'motadawel'
+        ? 'motadawel'
+        : 'infograph';
     pendingRequests.set(id, { resolve, reject, workerName });
 
     if (!activeWorker || !activeWorker.connected) {
@@ -690,8 +704,16 @@ ipcMain.handle('desktop:render', async (_event, payload) => {
 });
 
 ipcMain.handle('desktop:cancel-render', async (_event, payload) => {
-  const workerName = payload?.model === 'motadawel' ? 'motadawel' : 'infograph';
-  const worker = workerName === 'motadawel' ? renderWorkerMotadawel : renderWorkerInfograph;
+  const workerName = payload?.model === 'laqtat'
+    ? 'laqtat'
+    : payload?.model === 'motadawel'
+      ? 'motadawel'
+      : 'infograph';
+  const worker = workerName === 'motadawel'
+    ? renderWorkerMotadawel
+    : workerName === 'laqtat'
+      ? renderWorkerLaqtat
+      : renderWorkerInfograph;
   if (worker && !worker.killed) {
     worker.kill('SIGINT');
     writeWorkerLog(`cancel[${workerName}]`, 'Render worker killed by user');
@@ -1047,5 +1069,8 @@ app.on('before-quit', () => {
   }
   if (renderWorkerMotadawel && !renderWorkerMotadawel.killed) {
     renderWorkerMotadawel.kill();
+  }
+  if (renderWorkerLaqtat && !renderWorkerLaqtat.killed) {
+    renderWorkerLaqtat.kill();
   }
 });

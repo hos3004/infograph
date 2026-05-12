@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: file: blob: https://unpkg.com; img-src 'self' data: file: blob:; media-src 'self' data: file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://unpkg.com;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laqtat Generator Desktop V2</title>
+  <link rel="stylesheet" href="../../renderer/styles.css" />
+  <link rel="stylesheet" href="../../shared/paper-light.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .v2-root {
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg);
+      color: var(--text);
+      direction: rtl;
+      font-family: var(--font);
+    }
+
+    .main-content {
+      display: flex;
+      direction: ltr;
+      flex: 1;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .left-panel,
+    .right-panel {
+      direction: rtl;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-sm);
+      min-height: 0;
+    }
+
+    .left-panel {
+      flex: 1.2;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      overflow: hidden;
+    }
+
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-sm);
+    }
+
+    .preview-container {
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-height: 0;
+    }
+
+    .preview-stage-shell {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+
+    .preview-stage {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      direction: ltr;
+      unicode-bidi: isolate;
+      overflow: hidden;
+    }
+
+    #preview-exact-root,
+    #preview-exact-root > div {
+      direction: ltr;
+      unicode-bidi: isolate;
+      width: 100%;
+      height: 100%;
+    }
+
+    #preview-exact-root .__remotion-player {
+      margin-inline: auto;
+    }
+
+    .tabs-header {
+      display: flex;
+      min-height: 82px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-r);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.8rem 0.5rem 0.95rem;
+      border: none;
+      background: transparent;
+      font-weight: 700;
+      font-size: 0.94rem;
+      color: var(--text-mu);
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      font-family: var(--font);
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      background: var(--surface);
+      box-shadow: inset 0 -3px 0 var(--accent);
+    }
+
+    .tab-content {
+      padding: 0.75rem;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .tab-panel {
+      display: none;
+      overflow-y: auto;
+      min-height: 0;
+      padding-inline-end: 2px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .setting-group {
+      margin-bottom: 0.9rem;
+      background: var(--surface-r);
+      padding: 0.85rem;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+    }
+
+    .setting-label {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 0.86rem;
+      margin-bottom: 0.55rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-v2,
+    .number-input,
+    .textarea-v2,
+    select,
+    input[type="number"] {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font);
+      background: var(--surface);
+      font-size: 0.88rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+
+    .input-v2:focus,
+    .number-input:focus,
+    .textarea-v2:focus,
+    select:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(90,154,106,0.12);
+    }
+
+    .textarea-v2 {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.62rem 1.2rem;
+      border: none;
+      border-radius: var(--r-sm);
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-mu);
+      padding: 0.58rem 0.9rem;
+      border-radius: var(--r-sm);
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      font-family: var(--font);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .range-input {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .inline-row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .segment-list,
+    .blur-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    .editor-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .editor-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .field-caption {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-mu);
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+    }
+
+    .slider-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .slider-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.45rem;
+    }
+
+    .slider-value {
+      color: var(--accent);
+      font-size: 0.74rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .slider-static {
+      width: 100%;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--r-sm);
+      background: var(--surface-r);
+      border: 1px dashed var(--border);
+      color: var(--text-mu);
+      font-size: 0.84rem;
+      box-sizing: border-box;
+    }
+
+    .muted-text {
+      color: var(--text-mu);
+      font-size: 0.84rem;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .preview-header h2,
+    .save-section h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .save-section {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .progress-box {
+      background: var(--surface-r);
+      padding: 0.75rem;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.86rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.24s ease;
+    }
+
+    .blur-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      color: var(--text-mu);
+    }
+
+    .checkbox-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .status-note {
+      color: var(--text-mu);
+      font-size: 0.84rem;
+    }
+
+    .render-result {
+      min-height: 24px;
+      font-size: 0.88rem;
+    }
+
+    .render-result.is-hidden,
+    .status-panel.is-hidden,
+    .progress-container.is-hidden {
+      display: none !important;
+    }
+
+    .status-panel.error #status-title,
+    .status-panel.error #status-message {
+      color: var(--danger);
+    }
+
+    .project-link-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .blur-time-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      transition: .3s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    .switch input:checked + .slider {
+      background-color: #f59e0b;
+    }
+
+    .switch input:checked + .slider:before {
+      transform: translateX(14px);
+    }
+
+    .mini-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .mini-icon-btn {
+      width: 40px;
+      min-height: 31px;
+      border-radius: 6px;
+      padding: 0;
+    }
+
+    .render-result .result-actions {
+      display: inline-flex;
+      gap: 0.35rem;
+      margin-inline-start: 0.6rem;
+    }
+  </style>
+</head>
+<body class="paper-light-body">
+  <div class="v2-root">
+    <header class="paper-top-bar">
+      <div class="paper-logo-section">
+        <img id="brand-logo" class="paper-brand-logo-image" alt="لقطات" />
+        <div class="paper-project-actions" aria-label="إدارة المشروع">
+          <button id="project-save-btn" class="paper-project-icon-btn" type="button" title="حفظ المشروع" aria-label="حفظ المشروع">
+            <i data-lucide="save" style="width: 21px; height: 21px;"></i>
+            <span class="paper-project-status-dot" aria-hidden="true"></span>
+          </button>
+          <button id="project-open-btn" class="paper-project-icon-btn" type="button" title="فتح مشروع" aria-label="فتح مشروع">
+            <i data-lucide="folder-open" style="width: 21px; height: 21px;"></i>
+          </button>
+          <span id="project-save-status" class="paper-project-save-status">مشروع جديد</span>
+        </div>
+      </div>
+      <div class="paper-top-bar-btns">
+        <div class="paper-nav-pills-wrap">
+          <a href="../../renderer/index.html" class="paper-nav-pill">الأنفوجراف</a>
+          <a href="../../motadawel/renderer/index.html" class="paper-nav-pill">المتداول</a>
+          <a href="#" class="paper-nav-pill paper-nav-pill-active">لقطات</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <section class="left-panel">
+        <div class="panel-section preview-container">
+          <div class="preview-header">
+            <h2>المعاينة</h2>
+            <span id="runtime-summary" class="muted-text"></span>
+          </div>
+          <div class="preview-stage-shell">
+            <div id="preview-stage" class="preview-stage">
+              <div id="preview-exact-root" style="position:absolute; inset:0; width:100%; height:100%; direction:ltr;"></div>
+            </div>
+          </div>
+          <div class="status-note" id="preview-summary">اختر فيديوًا رئيسيًا للبدء.</div>
+        </div>
+
+        <div class="panel-section save-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem; color:#f59e0b; font-weight:700; font-size:0.95rem;">
+              <label class="switch">
+                <input type="checkbox" id="turbo-render-checkbox" checked />
+                <span class="slider"></span>
+              </label>
+              <span>Turbo Mode</span>
+            </div>
+            <div id="status-panel" class="status-panel" style="display:flex; align-items:center; gap:0.75rem;">
+              <h2 id="status-title">حفظ الفيديو</h2>
+              <div id="status-message" class="status-note">لم يبدأ الحفظ بعد</div>
+            </div>
+          </div>
+          <div id="progress-container" class="progress-container" style="display:flex; gap:0.75rem; align-items:stretch;">
+            <div class="mini-actions-col">
+              <button id="refresh-assets-btn" class="btn-secondary mini-icon-btn" type="button" title="تحديث الأصول" aria-label="تحديث الأصول">
+                <i data-lucide="rotate-cw" style="width:16px; height:16px;"></i>
+              </button>
+              <button id="open-output-btn" class="btn-secondary mini-icon-btn" type="button" title="فتح المخرجات" aria-label="فتح المخرجات">
+                <i data-lucide="folder-open" style="width:16px; height:16px;"></i>
+              </button>
+            </div>
+            <button id="render-btn" class="btn-primary" type="button" style="min-width:190px; font-size:1.05rem; display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;">
+              <i data-lucide="download" style="width:18px; height:18px;"></i>
+              حفظ الفيديو
+            </button>
+            <button id="cancel-render-btn" class="btn-secondary" type="button" style="display:none; min-width:140px; background:#ef4444; border-color:#ef4444; color:#fff;">إيقاف</button>
+            <div class="progress-box" style="flex:1; margin:0;">
+              <div class="progress-meta">
+                <span id="progress-percent">0%</span>
+                <span id="progress-label">في الانتظار...</span>
+              </div>
+              <div class="progress-track">
+                <div id="progress-bar" class="progress-fill"></div>
+              </div>
+            </div>
+          </div>
+          <div id="render-result" class="render-result is-hidden"></div>
+        </div>
+      </section>
+
+      <section class="right-panel">
+        <div class="tabs-header">
+          <button class="tab-btn active" data-target="tab-project"><i data-lucide="video"></i><span>المشروع</span></button>
+          <button class="tab-btn" data-target="tab-text"><i data-lucide="type"></i><span>النصوص</span></button>
+          <button class="tab-btn" data-target="tab-audio"><i data-lucide="music"></i><span>الصوتيات</span></button>
+        </div>
+        <div class="tab-content">
+          <div id="tab-project" class="tab-panel active">
+            <div class="setting-group">
+              <label class="setting-label">الفيديو الأساسي</label>
+              <div class="inline-row" style="margin-bottom:0.55rem;">
+                <button id="pick-main-video-btn" class="btn-secondary" type="button">اختيار فيديو</button>
+                <span id="main-video-label" class="muted-text" style="flex:1;"></span>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">الإطار</label>
+              <select id="frame-select" class="input-v2"></select>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">نمط ملء الشاشة</label>
+              <select id="fit-mode-select" class="input-v2">
+                <option value="contain">احتواء</option>
+                <option value="cover">ملء</option>
+                <option value="blurred-background">خلفية مموهة</option>
+              </select>
+            </div>
+
+            <div id="blurred-bg-group" class="setting-group">
+              <label class="setting-label">الخلفية المموهة</label>
+              <div class="editor-grid">
+                <label>
+                  <span class="slider-head">
+                    <span class="field-caption">شدة البلار</span>
+                    <span id="background-blur-value" class="slider-value">36px</span>
+                  </span>
+                  <input id="background-blur-input" type="range" class="range-input" min="8" max="80" step="1" value="36" />
+                </label>
+                <label>
+                  <span class="slider-head">
+                    <span class="field-caption">تكبير الخلفية</span>
+                    <span id="background-scale-value" class="slider-value">1.18</span>
+                  </span>
+                  <input id="background-scale-input" type="range" class="range-input" min="1" max="2" step="0.05" value="1.18" />
+                </label>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <div class="setting-label">
+                <span>التحكم بالمشهد</span>
+                <label class="checkbox-row"><input id="keep-source-audio-checkbox" type="checkbox" /> إبقاء صوت الفيديو</label>
+              </div>
+              <div class="editor-grid-3">
+                <label>
+                  <span class="field-caption">التكبير</span>
+                  <input id="scale-input" type="range" class="range-input" min="0.5" max="3" step="0.05" value="1" />
+                  <div id="scale-value" class="muted-text">1.00</div>
+                </label>
+                <label>
+                  <span class="field-caption">المحور X</span>
+                  <input id="x-input" type="range" class="range-input" min="-960" max="960" step="10" value="0" />
+                  <div id="x-value" class="muted-text">0px</div>
+                </label>
+                <label>
+                  <span class="field-caption">المحور Y</span>
+                  <input id="y-input" type="range" class="range-input" min="-540" max="540" step="10" value="0" />
+                  <div id="y-value" class="muted-text">0px</div>
+                </label>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <div class="setting-label">
+                <span>المقاطع</span>
+                <button id="add-segment-btn" type="button" class="btn-secondary">إضافة مقطع</button>
+              </div>
+              <div id="segment-list" class="segment-list"></div>
+            </div>
+
+            <div class="setting-group">
+              <div class="setting-label">
+                <span>التمويه</span>
+                <span class="blur-hint">مفعل طول الوقت افتراضيًا</span>
+              </div>
+              <div style="margin-bottom:0.7rem;">
+                <button id="add-blur-btn" type="button" class="btn-secondary">إضافة تمويه</button>
+              </div>
+              <div id="blur-list" class="blur-list"></div>
+            </div>
+          </div>
+
+          <div id="tab-text" class="tab-panel">
+            <div class="setting-group">
+              <label class="setting-label">النص الثابت</label>
+              <textarea id="text-input" class="textarea-v2" placeholder="اختياري: عنوان أو تنويه بصري"></textarea>
+            </div>
+            <div class="setting-group">
+              <div class="editor-grid">
+                <label>
+                  <span class="field-caption">موضع النص من الأسفل</span>
+                  <input id="bottom-offset-input" type="range" class="range-input" min="40" max="280" step="10" value="160" />
+                  <div id="bottom-offset-value" class="muted-text">160px</div>
+                </label>
+                <label>
+                  <span class="field-caption">حجم الخط</span>
+                  <input id="font-size-input" type="range" class="range-input" min="24" max="96" step="2" value="46" />
+                  <div id="font-size-value" class="muted-text">46px</div>
+                </label>
+              </div>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label">لون شريط النص</label>
+              <select id="text-preset-select" class="input-v2">
+                <option value="dark">داكن</option>
+                <option value="gold">ذهبي</option>
+                <option value="blue">أزرق</option>
+                <option value="red">أحمر</option>
+                <option value="orange">برتقالي</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label">حركة النص</label>
+              <select id="text-animation-select" class="input-v2">
+                <option value="motion-blur">دخول ناعم</option>
+                <option value="typewriter">آلة كاتبة</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="tab-audio" class="tab-panel">
+            <div class="setting-group">
+              <label class="setting-label">الموسيقى</label>
+              <select id="bg-music-select" class="input-v2"></select>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label">مستوى الموسيقى <span id="bg-music-volume-value">25%</span></label>
+              <input id="bg-music-volume-input" type="range" class="range-input" min="0" max="100" step="1" value="25" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./generated/preview-player-laqtat.js"></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
